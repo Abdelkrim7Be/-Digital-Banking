@@ -10,10 +10,14 @@ import com.bellagnech.dig_bank.exceptions.CustomerNotFoundException;
 import com.bellagnech.dig_bank.repositories.AccountOperationRepository;
 import com.bellagnech.dig_bank.repositories.BankAccountRepository;
 import com.bellagnech.dig_bank.repositories.CustomerRepository;
+import com.bellagnech.dig_bank.dtos.CustomerDTO;
+import com.bellagnech.dig_bank.mappers.BankAccountMapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +30,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     private CustomerRepository customerRepository;
     private BankAccountRepository bankAccountRepository;
     private AccountOperationRepository accountOperationRepository;
+    private BankAccountMapperImpl dtoMapper;
 
     // Save a new customer to the system
     @Override
@@ -78,6 +83,16 @@ public class BankAccountServiceImpl implements BankAccountService {
         return customerRepository.findAll();
     }
 
+    // Get all customers as DTOs
+    @Override
+    public List<CustomerDTO> listCustomersDTO() {
+        List<Customer> customers = customerRepository.findAll();
+        List<CustomerDTO> customerDTOS = customers.stream()
+                .map(customer -> dtoMapper.fromCustomer(customer))
+                .collect(Collectors.toList());
+        return customerDTOS;
+    }
+
     // Find a bank account by its ID
     @Override
     public BankAccount getBankAccount(String accountId) throws BankAccountNotFoundException {
@@ -128,7 +143,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     
     // List of all bank accounts 
     @Override
-    public List<BankAccount> bankAccountList(){
+    public List<BankAccount> bankAccountList() {
         return bankAccountRepository.findAll();
     }
 }
