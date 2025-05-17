@@ -1,6 +1,7 @@
 package com.bellagnech.dig_bank;
 
 import com.bellagnech.dig_bank.entities.*;
+import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.enums.AccountStatus;
 import com.bellagnech.dig_bank.enums.OperationType;
 import com.bellagnech.dig_bank.exceptions.BalanceNotSufficientException;
@@ -74,8 +75,8 @@ public class DigBankApplication {
     //@Bean
     public CommandLineRunner commandLineRunner(BankAccountService bankAccountService) {
         return args -> {
-            Stream.of("Hassan","Imane","Mohamed").forEach(name -> {
-                Customer customer = new Customer();
+            Stream.of("Manal","Hajjar","Aya").forEach(name -> {
+                CustomerDTO customer = new CustomerDTO();
                 customer.setName(name);
                 customer.setEmail(name + "@gmail.com");
                 bankAccountService.saveCustomer(customer);

@@ -13,7 +13,7 @@ import java.util.List;
 
 public interface BankAccountService {
     // Save a new customer to the system
-    Customer saveCustomer(Customer customer);
+    CustomerDTO saveCustomer(CustomerDTO customer);
     // Create a new current account with overdraft facility
     CurrentAccount saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId) throws CustomerNotFoundException;
     // Create a new savings account with interest rate
@@ -33,5 +33,11 @@ public interface BankAccountService {
     List<Customer> listCustomers();
     // Get all customers as DTOs
     List<CustomerDTO> listCustomersDTO();
+    // Get a specific customer
+    CustomerDTO getCustomer(Long customerId) throws CustomerNotFoundException;
+    // Update a customer
+    CustomerDTO updateCustomer(CustomerDTO customerDTO);
+    // Delete a customer
+    void deleteCustomer(Long customerID);
 
 }
