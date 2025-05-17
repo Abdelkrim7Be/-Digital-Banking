@@ -1,5 +1,7 @@
 package com.bellagnech.dig_bank.enums;
 
-public class AccountStatus {
-    
+public enum AccountStatus {
+    CREATED,
+    ACTIVATES,
+    SUSPENDED
 }
