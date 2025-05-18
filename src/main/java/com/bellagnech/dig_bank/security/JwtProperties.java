@@ -12,4 +12,6 @@ public class JwtProperties {
     private String app;
     private String secret;
     private long expires;
+    private String header = "Authorization";
+    private String prefix = "Bearer ";
 }
