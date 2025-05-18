@@ -3,10 +3,12 @@ package com.bellagnech.dig_bank.security;
 import com.bellagnech.dig_bank.security.jwt.JwtAuthenticationFilter;
 import com.bellagnech.dig_bank.security.jwt.JwtAuthorizationFilter;
 import com.bellagnech.dig_bank.security.jwt.JwtUtil;
+import com.bellagnech.dig_bank.security.services.CustomUserDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -34,12 +36,26 @@ public class SecurityConfig {
             "/login",
             "/api/auth/**"
     };
+    
+    /**
+     * Configure DaoAuthenticationProvider with our custom UserDetailsService
+     */
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider(
+            CustomUserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder);
+        return authProvider;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, 
                                                   AuthenticationManager authenticationManager,
                                                   JwtUtil jwtUtil,
-                                                  ObjectMapper objectMapper) throws Exception {
+                                                  ObjectMapper objectMapper,
+                                                  DaoAuthenticationProvider authenticationProvider) throws Exception {
         // Create JWT authentication filter
         JwtAuthenticationFilter jwtAuthenticationFilter = 
             new JwtAuthenticationFilter(authenticationManager, jwtUtil, objectMapper);
@@ -56,6 +72,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated())
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authenticationProvider(authenticationProvider)
             .oauth2ResourceServer(oauth2 -> oauth2.jwt())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class)
