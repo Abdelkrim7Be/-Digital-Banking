@@ -186,13 +186,6 @@ public class BankAccountServiceImpl implements BankAccountService {
         accountOperation.setOperationDate(new Date());
         accountOperation.setBankAccount(bankAccount);
         
-        // Set user who performed the operation
-        if (!"system".equals(username)) {
-            AppUser user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-            accountOperation.setUser(user);
-        }
-        
         accountOperationRepository.save(accountOperation);
         
         // Update account balance
@@ -229,13 +222,6 @@ public class BankAccountServiceImpl implements BankAccountService {
         accountOperation.setDescription(description);
         accountOperation.setOperationDate(new Date());
         accountOperation.setBankAccount(bankAccount);
-        
-        // Set user who performed the operation
-        if (!"system".equals(username)) {
-            AppUser user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-            accountOperation.setUser(user);
-        }
         
         accountOperationRepository.save(accountOperation);
         
@@ -299,7 +285,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         
         // Check if customer exists
         if (!customerRepository.existsById(customerDTO.getId())) {
-            throw new CustomerNotFoundException("Customer not found with ID: " + customerDTO.getId());
+            throw new RuntimeException("Customer not found with ID: " + customerDTO.getId());
         }
         
         Customer customer = dtoMapper.fromCustomerDTO(customerDTO);
@@ -367,13 +353,6 @@ public class BankAccountServiceImpl implements BankAccountService {
         accountOperation.setDescription("Interest Applied");
         accountOperation.setOperationDate(new Date());
         accountOperation.setBankAccount(savingAccount);
-        
-        // Set user who performed the operation
-        if (!"system".equals(username)) {
-            AppUser user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-            accountOperation.setUser(user);
-        }
         
         accountOperationRepository.save(accountOperation);
         
