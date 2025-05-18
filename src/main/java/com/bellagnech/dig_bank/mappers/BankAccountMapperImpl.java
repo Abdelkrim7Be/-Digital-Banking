@@ -7,6 +7,7 @@ import com.bellagnech.dig_bank.entities.CurrentAccount;
 import com.bellagnech.dig_bank.entities.Customer;
 import com.bellagnech.dig_bank.entities.SavingAccount;
 import com.bellagnech.dig_bank.entities.AccountOperation;
+import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +31,7 @@ public class BankAccountMapperImpl {
         SavingBankAccountDTO savingBankAccountDTO = new SavingBankAccountDTO();
         BeanUtils.copyProperties(savingAccount, savingBankAccountDTO);
         savingBankAccountDTO.setCustomerDTO(fromCustomer(savingAccount.getCustomer()));
+        savingBankAccountDTO.setType(savingAccount.getClass().getSimpleName());
         return savingBankAccountDTO;
 
     }
@@ -46,6 +48,7 @@ public class BankAccountMapperImpl {
         CurrentBankAccountDTO currentBankAccountDTO = new CurrentBankAccountDTO();
         BeanUtils.copyProperties(currentAccount, currentBankAccountDTO);
         currentBankAccountDTO.setCustomerDTO(fromCustomer(currentAccount.getCustomer()));
+        currentBankAccountDTO.setType(currentAccount.getClass().getSimpleName());
         return currentBankAccountDTO;
 
     }
@@ -55,7 +58,12 @@ public class BankAccountMapperImpl {
         BeanUtils.copyProperties(currentBankAccountDTO, currentAccount);
         currentAccount.setCustomer(fromCustomerDTO(currentBankAccountDTO.getCustomerDTO()));
         return currentAccount;
+    }
 
+    public AccountOperationDTO fromAccountOperation(AccountOperation accountOperation) {
+        AccountOperationDTO accountOperationDTO = new AccountOperationDTO();
+        BeanUtils.copyProperties(accountOperation, accountOperationDTO);
+        return accountOperationDTO;
     }
         
 }

@@ -1,11 +1,17 @@
 package com.bellagnech.dig_bank.dtos;
 
-import lombok.Data;
+import java.sql.Date;
+
 import com.bellagnech.dig_bank.enums.AccountStatus;
 
-import java.util.Date;
+import lombok.Data;
 
 @Data
 public class BankAccountDTO {
+    private String id;
     private String type;
+    private double balance;
+    private Date createDate;
+    private AccountStatus status;
+    private CustomerDTO customerDTO;
 }
