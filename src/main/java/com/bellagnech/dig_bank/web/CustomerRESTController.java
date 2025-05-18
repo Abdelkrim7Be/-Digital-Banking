@@ -42,20 +42,23 @@ public class CustomerRESTController {
     @GetMapping("/customers")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
     public List<CustomerDTO> customers() {
-        log.info("User {} is requesting all customers", getCurrentUsername());
-        return bankAccountService.listCustomersDTO();
+        String currentUsername = getCurrentUsername();
+        log.info("User {} is requesting all customers", currentUsername);
+        return bankAccountService.listCustomersByUser(currentUsername);
     }
     
     @Operation(summary = "Get customer by ID", description = "Retrieves a specific customer by their ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved customer"),
-        @ApiResponse(responseCode = "404", description = "Customer not found")
+        @ApiResponse(responseCode = "404", description = "Customer not found"),
+        @ApiResponse(responseCode = "403", description = "Access denied")
     })
     @GetMapping("/customers/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
     public CustomerDTO getCustomer(@PathVariable (name = "id") Long customerId) throws CustomerNotFoundException {
-        log.info("User {} is requesting customer with ID: {}", getCurrentUsername(), customerId);
-        return bankAccountService.getCustomer(customerId);
+        String currentUsername = getCurrentUsername();
+        log.info("User {} is requesting customer with ID: {}", currentUsername, customerId);
+        return bankAccountService.getCustomerForUser(customerId, currentUsername);
     }
 
     @Operation(summary = "Create new customer", description = "Creates a new customer in the system")
@@ -66,16 +69,15 @@ public class CustomerRESTController {
         String username = getCurrentUsername();
         log.info("User {} is creating a new customer", username);
         
-        // Prepare audit information
-        customerDTO.setCreatedBy(username);
-        
-        return bankAccountService.saveCustomer(customerDTO);
+        // Associate customer with current user
+        return bankAccountService.saveCustomerForUser(customerDTO, username);
     }
 
     @Operation(summary = "Update customer", description = "Updates an existing customer's information")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Customer successfully updated"),
-        @ApiResponse(responseCode = "404", description = "Customer not found")
+        @ApiResponse(responseCode = "404", description = "Customer not found"),
+        @ApiResponse(responseCode = "403", description = "Access denied")
     })
     @PutMapping("/customers/{customerId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
@@ -84,18 +86,25 @@ public class CustomerRESTController {
         log.info("User {} is updating customer with ID: {}", username, customerId);
         
         customerDTO.setId(customerId);
-        // Prepare audit information
-        customerDTO.setLastModifiedBy(username);
-        
-        return bankAccountService.updateCustomer(customerDTO);
+        return bankAccountService.updateCustomerForUser(customerDTO, username);
     }
 
     @Operation(summary = "Delete customer", description = "Removes a customer from the system")
-    @ApiResponse(responseCode = "200", description = "Customer successfully deleted")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Customer successfully deleted"),
+        @ApiResponse(responseCode = "403", description = "Access denied")
+    })
     @DeleteMapping("/customers/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteCustomer(@PathVariable Long id) {
-        log.info("User {} is deleting customer with ID: {}", getCurrentUsername(), id);
+        String username = getCurrentUsername();
+        log.info("User {} is deleting customer with ID: {}", username, id);
+        
+        // Check if customer belongs to user (for non-admin users)
+        if (!bankAccountService.customerBelongsToUser(id, username)) {
+            throw new com.bellagnech.dig_bank.exceptions.AccessDeniedException("You don't have permission to delete this customer");
+        }
+        
         bankAccountService.deleteCustomer(id);
     }
 
@@ -106,8 +115,9 @@ public class CustomerRESTController {
     public Page<CustomerDTO> getCustomersPage(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
-        log.info("User {} is requesting customers page {} with size {}", getCurrentUsername(), page, size);
-        return bankAccountService.getCustomersPageable(page, size);
+        String currentUsername = getCurrentUsername();
+        log.info("User {} is requesting customers page {} with size {}", currentUsername, page, size);
+        return bankAccountService.getCustomersPageableByUser(currentUsername, page, size);
     }
 
     @Operation(summary = "Search customers", description = "Search customers by name or email")
@@ -118,8 +128,9 @@ public class CustomerRESTController {
             @RequestParam(name = "keyword") String keyword,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
-        log.info("User {} is searching for customers with keyword: {}", getCurrentUsername(), keyword);
-        return bankAccountService.searchCustomers(keyword, page, size);
+        String currentUsername = getCurrentUsername();
+        log.info("User {} is searching for customers with keyword: {}", currentUsername, keyword);
+        return bankAccountService.searchCustomersByUser(currentUsername, keyword, page, size);
     }
     
     /**

@@ -19,6 +19,7 @@ import com.bellagnech.dig_bank.dtos.BankAccountDTO;
 import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
 import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
 import com.bellagnech.dig_bank.security.exceptions.UserNotFoundException;
+import com.bellagnech.dig_bank.exceptions.AccessDeniedException;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -414,5 +415,177 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .map(customer -> dtoMapper.fromCustomer(customer))
                 .collect(Collectors.toList());
         return new PageImpl<>(customerDTOS, PageRequest.of(page, size), customersPage.getTotalElements());
+    }
+
+    // New methods for user-customer relationship
+    @Override
+    public CustomerDTO saveCustomerForUser(CustomerDTO customerDTO, String username) {
+        log.info("Saving new Customer for user: {}", username);
+        
+        // Check if email already exists
+        if (customerDTO.getId() == null && customerRepository.existsByEmail(customerDTO.getEmail())) {
+            throw new IllegalArgumentException("Email already exists: " + customerDTO.getEmail());
+        }
+        
+        // Get the user who will own this customer
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+        
+        Customer customer = dtoMapper.fromCustomerDTO(customerDTO);
+        customer.setOwner(user);
+        
+        // Set audit fields
+        customer.setCreatedBy(username);
+        customer.setCreatedDate(new Date());
+        
+        Customer savedCustomer = customerRepository.save(customer);
+        CustomerDTO savedDTO = dtoMapper.fromCustomer(savedCustomer);
+        savedDTO.setOwnerUsername(username);
+        savedDTO.setOwnerId(user.getId());
+        
+        return savedDTO;
+    }
+
+    @Override
+    public CustomerDTO updateCustomerForUser(CustomerDTO customerDTO, String username) {
+        log.info("Updating Customer for user: {}", username);
+        
+        // Get the user who owns this customer
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+        
+        // Check if customer exists and belongs to the user
+        if (!customerRepository.existsByIdAndOwner(customerDTO.getId(), user)) {
+            throw new AccessDeniedException("You don't have permission to update this customer");
+        }
+        
+        Customer customer = dtoMapper.fromCustomerDTO(customerDTO);
+        customer.setOwner(user);
+        
+        // Set audit fields
+        customer.setLastModifiedBy(username);
+        customer.setLastModifiedDate(new Date());
+        
+        Customer savedCustomer = customerRepository.save(customer);
+        CustomerDTO savedDTO = dtoMapper.fromCustomer(savedCustomer);
+        savedDTO.setOwnerUsername(username);
+        savedDTO.setOwnerId(user.getId());
+        
+        return savedDTO;
+    }
+
+    @Override
+    public List<CustomerDTO> listCustomersByUser(String username) {
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+        
+        List<Customer> customers;
+        // Admin can see all customers
+        if (user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"))) {
+            customers = customerRepository.findAll();
+        } else {
+            customers = customerRepository.findByOwner(user);
+        }
+        
+        return customers.stream()
+            .map(customer -> {
+                CustomerDTO dto = dtoMapper.fromCustomer(customer);
+                if (customer.getOwner() != null) {
+                    dto.setOwnerUsername(customer.getOwner().getUsername());
+                    dto.setOwnerId(customer.getOwner().getId());
+                }
+                return dto;
+            })
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public CustomerDTO getCustomerForUser(Long customerId, String username) throws CustomerNotFoundException {
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+        
+        Customer customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new CustomerNotFoundException("Customer not found with ID: " + customerId));
+        
+        // Admin can access any customer, other users can only access their own customers
+        if (!user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN")) 
+                && (customer.getOwner() == null || !customer.getOwner().getId().equals(user.getId()))) {
+            throw new AccessDeniedException("You don't have permission to access this customer");
+        }
+        
+        CustomerDTO dto = dtoMapper.fromCustomer(customer);
+        if (customer.getOwner() != null) {
+            dto.setOwnerUsername(customer.getOwner().getUsername());
+            dto.setOwnerId(customer.getOwner().getId());
+        }
+        
+        return dto;
+    }
+
+    @Override
+    public Page<CustomerDTO> getCustomersPageableByUser(String username, int page, int size) {
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+        
+        Page<Customer> customersPage;
+        // Admin can see all customers
+        if (user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"))) {
+            customersPage = customerRepository.findAll(PageRequest.of(page, size));
+        } else {
+            customersPage = customerRepository.findByOwner(user, PageRequest.of(page, size));
+        }
+        
+        List<CustomerDTO> customerDTOS = customersPage.getContent().stream()
+            .map(customer -> {
+                CustomerDTO dto = dtoMapper.fromCustomer(customer);
+                if (customer.getOwner() != null) {
+                    dto.setOwnerUsername(customer.getOwner().getUsername());
+                    dto.setOwnerId(customer.getOwner().getId());
+                }
+                return dto;
+            })
+            .collect(Collectors.toList());
+        
+        return new PageImpl<>(customerDTOS, PageRequest.of(page, size), customersPage.getTotalElements());
+    }
+
+    @Override
+    public Page<CustomerDTO> searchCustomersByUser(String username, String keyword, int page, int size) {
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+        
+        Page<Customer> customersPage;
+        // Admin can search all customers
+        if (user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"))) {
+            customersPage = customerRepository.searchCustomers(keyword, PageRequest.of(page, size));
+        } else {
+            customersPage = customerRepository.searchCustomersByOwner(keyword, user, PageRequest.of(page, size));
+        }
+        
+        List<CustomerDTO> customerDTOS = customersPage.getContent().stream()
+            .map(customer -> {
+                CustomerDTO dto = dtoMapper.fromCustomer(customer);
+                if (customer.getOwner() != null) {
+                    dto.setOwnerUsername(customer.getOwner().getUsername());
+                    dto.setOwnerId(customer.getOwner().getId());
+                }
+                return dto;
+            })
+            .collect(Collectors.toList());
+        
+        return new PageImpl<>(customerDTOS, PageRequest.of(page, size), customersPage.getTotalElements());
+    }
+
+    @Override
+    public boolean customerBelongsToUser(Long customerId, String username) {
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+        
+        // Admin can access any customer
+        if (user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"))) {
+            return true;
+        }
+        
+        return customerRepository.existsByIdAndOwner(customerId, user);
     }
 }

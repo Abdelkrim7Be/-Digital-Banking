@@ -11,19 +11,25 @@ import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-
-
 @Service
 public class BankAccountMapperImpl {
     public CustomerDTO fromCustomer(Customer customer) {
         CustomerDTO customerDTO = new CustomerDTO();
         BeanUtils.copyProperties(customer, customerDTO);
+        
+        // Map user information if available
+        if (customer.getOwner() != null) {
+            customerDTO.setOwnerId(customer.getOwner().getId());
+            customerDTO.setOwnerUsername(customer.getOwner().getUsername());
+        }
+        
         return customerDTO;
     }
 
     public Customer fromCustomerDTO(CustomerDTO customerDTO) {
         Customer customer = new Customer();
         BeanUtils.copyProperties(customerDTO, customer);
+        // Note: We don't map the owner here as it should be handled by the service
         return customer;
     }
 

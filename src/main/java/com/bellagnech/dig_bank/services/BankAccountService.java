@@ -70,4 +70,13 @@ public interface BankAccountService {
     Page<CustomerDTO> getCustomersPageable(int page, int size);
     // Add this method to the interface
     Page<CustomerDTO> searchCustomers(String keyword, int page, int size);
+    
+    // New methods for user-customer relationship
+    CustomerDTO saveCustomerForUser(CustomerDTO customer, String username);
+    CustomerDTO updateCustomerForUser(CustomerDTO customerDTO, String username);
+    List<CustomerDTO> listCustomersByUser(String username);
+    CustomerDTO getCustomerForUser(Long customerId, String username) throws CustomerNotFoundException;
+    Page<CustomerDTO> getCustomersPageableByUser(String username, int page, int size);
+    Page<CustomerDTO> searchCustomersByUser(String username, String keyword, int page, int size);
+    boolean customerBelongsToUser(Long customerId, String username);
 }
