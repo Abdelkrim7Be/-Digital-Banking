@@ -1,15 +1,16 @@
 package com.bellagnech.dig_bank.security.dtos;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
-
 /**
- * Data Transfer Object for user login requests
+ * Data Transfer Object for login requests
  */
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class LoginRequest {
