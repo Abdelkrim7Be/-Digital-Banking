@@ -19,17 +19,28 @@ public interface BankAccountService {
     // Save a new customer to the system
     CustomerDTO saveCustomer(CustomerDTO customer);
     // Create a new current account with overdraft facility
-    CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId) throws CustomerNotFoundException;    // Create a new savings account with interest rate
+    CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId) throws CustomerNotFoundException;
+    // Create a new current account with overdraft facility and track creator
+    CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId, String username) throws CustomerNotFoundException;
     // Create a new savings account with interest rate
     SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId) throws CustomerNotFoundException;
+    // Create a new savings account with interest rate and track creator
+    SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId, String username) throws CustomerNotFoundException;
     // Find a bank account by its ID
     BankAccountDTO getBankAccount(String accountId) throws BankAccountNotFoundException;
     // Withdraw money from an account
     void debit(String accountId, double amount, String description) throws BankAccountNotFoundException, BalanceNotSufficientException;
+    // Withdraw money from an account and track user
+    void debit(String accountId, double amount, String description, String username) throws BankAccountNotFoundException, BalanceNotSufficientException;
     // Deposit money into an account
     void credit(String accountId, double amount, String description) throws BankAccountNotFoundException;
+    // Deposit money into an account and track user
+    void credit(String accountId, double amount, String description, String username) throws BankAccountNotFoundException;
     // Transfer money between two accounts
     void transfer(String accountIdSource, String accountIdDestination, Double amount)
+    throws BankAccountNotFoundException, BalanceNotSufficientException;
+    // Transfer money between two accounts and track user
+    void transfer(String accountIdSource, String accountIdDestination, Double amount, String username)
     throws BankAccountNotFoundException, BalanceNotSufficientException;
     // List of all bank accounts 
     List<BankAccountDTO> bankAccountList();
@@ -49,8 +60,12 @@ public interface BankAccountService {
     AccountHistoryDTO getAccountHistory(String accountId, int page, int size) throws BankAccountNotFoundException;
     // Add interest rate calculation method
     void applyInterest(String accountId) throws BankAccountNotFoundException;
+    // Add interest rate calculation method with user tracking
+    void applyInterest(String accountId, String username) throws BankAccountNotFoundException;
     // Add account status management method
     void updateAccountStatus(String accountId, AccountStatus status) throws BankAccountNotFoundException;
+    // Add account status management method with user tracking
+    void updateAccountStatus(String accountId, AccountStatus status, String username) throws BankAccountNotFoundException;
     // Get paginated list of customers
     Page<CustomerDTO> getCustomersPageable(int page, int size);
     // Add this method to the interface

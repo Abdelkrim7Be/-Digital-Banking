@@ -10,6 +10,7 @@ import com.bellagnech.dig_bank.exceptions.CustomerNotFoundException;
 import com.bellagnech.dig_bank.repositories.AccountOperationRepository;
 import com.bellagnech.dig_bank.repositories.BankAccountRepository;
 import com.bellagnech.dig_bank.repositories.CustomerRepository;
+import com.bellagnech.dig_bank.repositories.AppUserRepository;
 import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.mappers.BankAccountMapperImpl;
 import com.bellagnech.dig_bank.dtos.AccountHistoryDTO;
@@ -17,6 +18,8 @@ import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
 import com.bellagnech.dig_bank.dtos.BankAccountDTO;
 import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
 import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
+import com.bellagnech.dig_bank.security.exceptions.UserNotFoundException;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.PageImpl;
@@ -36,6 +39,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     private CustomerRepository customerRepository;
     private BankAccountRepository bankAccountRepository;
     private AccountOperationRepository accountOperationRepository;
+    private AppUserRepository appUserRepository;
     private BankAccountMapperImpl dtoMapper;
 
     // Save a new customer to the system
@@ -49,40 +53,82 @@ public class BankAccountServiceImpl implements BankAccountService {
         }
         
         Customer customer = dtoMapper.fromCustomerDTO(customerDTO);
+        
+        // Set audit fields if provided
+        if (customerDTO.getCreatedBy() != null) {
+            customer.setCreatedBy(customerDTO.getCreatedBy());
+            customer.setCreatedDate(new Date());
+        }
+        
         Customer savedCustomer = customerRepository.save(customer);
         return dtoMapper.fromCustomer(savedCustomer);
     }
 
     // Create a new current account with overdraft facility
     @Override
-    public CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId) throws CustomerNotFoundException {        // Enregistrer un compte: CurrentAccount
-        Customer customer=customerRepository.findById(customerId).orElse(null);
-        if(customer==null)
+    public CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId) throws CustomerNotFoundException {
+        return saveCurrentBankAccount(initialBalance, overDraft, customerId, "system");
+    }
+
+    // Create a new current account with overdraft facility and track creator
+    @Override
+    public CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId, String username) throws CustomerNotFoundException {
+        Customer customer = customerRepository.findById(customerId).orElse(null);
+        if(customer == null)
             throw new CustomerNotFoundException("Customer not found");
-        CurrentAccount currentAccount=new CurrentAccount();
+            
+        CurrentAccount currentAccount = new CurrentAccount();
         currentAccount.setId(UUID.randomUUID().toString());
         currentAccount.setBalance(initialBalance);
         currentAccount.setOverDraft(overDraft);
         currentAccount.setCustomer(customer);
         currentAccount.setCreateDate(new Date());
-        CurrentAccount savedBankAccount=bankAccountRepository.save(currentAccount);
+        currentAccount.setStatus(AccountStatus.CREATED);
+        
+        // Set creator information
+        if (!"system".equals(username)) {
+            AppUser creator = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            currentAccount.setCreatedBy(creator);
+            currentAccount.setLastModifiedBy(creator);
+            currentAccount.setLastModifiedDate(new Date());
+        }
+        
+        CurrentAccount savedBankAccount = bankAccountRepository.save(currentAccount);
         return dtoMapper.fromCurrentBankAccount(savedBankAccount);
-
     }
 
     // Create a new savings account with interest rate
     @Override
-    public SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId) throws CustomerNotFoundException {        // Enregistrer un compte: SavingAccount
-        Customer customer=customerRepository.findById(customerId).orElse(null);
-        if(customer==null)
+    public SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId) throws CustomerNotFoundException {
+        return saveSavingBankAccount(initialBalance, interestRate, customerId, "system");
+    }
+
+    // Create a new savings account with interest rate and track creator
+    @Override
+    public SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId, String username) throws CustomerNotFoundException {
+        Customer customer = customerRepository.findById(customerId).orElse(null);
+        if(customer == null)
             throw new CustomerNotFoundException("Customer not found");
-        SavingAccount savingAccount=new SavingAccount();
+            
+        SavingAccount savingAccount = new SavingAccount();
         savingAccount.setId(UUID.randomUUID().toString());
         savingAccount.setBalance(initialBalance);
         savingAccount.setInterestRate(interestRate);
         savingAccount.setCustomer(customer);
         savingAccount.setCreateDate(new Date());
-        SavingAccount savedBankAccount=bankAccountRepository.save(savingAccount);
+        savingAccount.setStatus(AccountStatus.CREATED);
+        
+        // Set creator information
+        if (!"system".equals(username)) {
+            AppUser creator = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            savingAccount.setCreatedBy(creator);
+            savingAccount.setLastModifiedBy(creator);
+            savingAccount.setLastModifiedDate(new Date());
+        }
+        
+        SavingAccount savedBankAccount = bankAccountRepository.save(savingAccount);
         return dtoMapper.fromSavingBankAccount(savedBankAccount);
     }
 
@@ -105,7 +151,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     // Find a bank account by its ID
     @Override
     public BankAccountDTO getBankAccount(String accountId) throws BankAccountNotFoundException {
-        BankAccount bankAccount=bankAccountRepository.findById(accountId)
+        BankAccount bankAccount = bankAccountRepository.findById(accountId)
                 .orElseThrow(()->new BankAccountNotFoundException("BankAccount not found"));
         if (bankAccount instanceof SavingAccount) {
             SavingAccount savingAccount = (SavingAccount) bankAccount;
@@ -120,18 +166,46 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Override
     @Transactional
     public void debit(String accountId, double amount, String description) throws BankAccountNotFoundException, BalanceNotSufficientException {
-         BankAccount bankAccount = bankAccountRepository.findById(accountId)
+        debit(accountId, amount, description, "system");
+    }
+
+    // Withdraw money from an account and track user
+    @Override
+    @Transactional
+    public void debit(String accountId, double amount, String description, String username) throws BankAccountNotFoundException, BalanceNotSufficientException {
+        BankAccount bankAccount = bankAccountRepository.findById(accountId)
                 .orElseThrow(() -> new BankAccountNotFoundException("BankAccount not found"));
-        if(bankAccount.getBalance()<amount)
+                
+        if(bankAccount.getBalance() < amount)
             throw new BalanceNotSufficientException("Balance not sufficient");
-        AccountOperation accountOperation=new AccountOperation();
+            
+        AccountOperation accountOperation = new AccountOperation();
         accountOperation.setType(OperationType.DEBIT);
         accountOperation.setAmount(amount);
         accountOperation.setDescription(description);
         accountOperation.setOperationDate(new Date());
         accountOperation.setBankAccount(bankAccount);
+        
+        // Set user who performed the operation
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            accountOperation.setUser(user);
+        }
+        
         accountOperationRepository.save(accountOperation);
-        bankAccount.setBalance(bankAccount.getBalance()-amount);
+        
+        // Update account balance
+        bankAccount.setBalance(bankAccount.getBalance() - amount);
+        
+        // Update last modified info
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            bankAccount.setLastModifiedBy(user);
+            bankAccount.setLastModifiedDate(new Date());
+        }
+        
         bankAccountRepository.save(bankAccount);
     }
 
@@ -139,16 +213,43 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Override
     @Transactional
     public void credit(String accountId, double amount, String description) throws BankAccountNotFoundException {
+        credit(accountId, amount, description, "system");
+    }
+
+    // Deposit money into an account and track user
+    @Override
+    @Transactional
+    public void credit(String accountId, double amount, String description, String username) throws BankAccountNotFoundException {
         BankAccount bankAccount = bankAccountRepository.findById(accountId)
                 .orElseThrow(() -> new BankAccountNotFoundException("BankAccount not found"));
-        AccountOperation accountOperation=new AccountOperation();
+                
+        AccountOperation accountOperation = new AccountOperation();
         accountOperation.setType(OperationType.CREDIT);
         accountOperation.setAmount(amount);
         accountOperation.setDescription(description);
         accountOperation.setOperationDate(new Date());
         accountOperation.setBankAccount(bankAccount);
+        
+        // Set user who performed the operation
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            accountOperation.setUser(user);
+        }
+        
         accountOperationRepository.save(accountOperation);
-        bankAccount.setBalance(bankAccount.getBalance()+amount);
+        
+        // Update account balance
+        bankAccount.setBalance(bankAccount.getBalance() + amount);
+        
+        // Update last modified info
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            bankAccount.setLastModifiedBy(user);
+            bankAccount.setLastModifiedDate(new Date());
+        }
+        
         bankAccountRepository.save(bankAccount);
     }
 
@@ -157,8 +258,16 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Transactional
     public void transfer(String accountIdSource, String accountIdDestination, Double amount)
             throws BankAccountNotFoundException, BalanceNotSufficientException {
-        debit(accountIdSource, amount, "Transfer to " + accountIdDestination);
-        credit(accountIdDestination, amount, "Transfer from " + accountIdSource);
+        transfer(accountIdSource, accountIdDestination, amount, "system");
+    }
+    
+    // Transfer money between two accounts and track user
+    @Override
+    @Transactional
+    public void transfer(String accountIdSource, String accountIdDestination, Double amount, String username)
+            throws BankAccountNotFoundException, BalanceNotSufficientException {
+        debit(accountIdSource, amount, "Transfer to " + accountIdDestination, username);
+        credit(accountIdDestination, amount, "Transfer from " + accountIdSource, username);
     }
     
     // List of all bank accounts 
@@ -172,13 +281,12 @@ public class BankAccountServiceImpl implements BankAccountService {
             } else {
                 CurrentAccount currentAccount = (CurrentAccount) bankAccount;
                 return dtoMapper.fromCurrentBankAccount(currentAccount);
-
             }
         }).collect(Collectors.toList());
         return bankAccountDTOS;
     }
 
-     @Override
+    @Override
     public CustomerDTO getCustomer(Long customerId) throws CustomerNotFoundException {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("Customer Not found"));
@@ -187,9 +295,21 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     @Override
     public CustomerDTO updateCustomer(CustomerDTO customerDTO) {
-        // Creation d'un client
-        log.info("Saving new Customer");
+        log.info("Updating Customer");
+        
+        // Check if customer exists
+        if (!customerRepository.existsById(customerDTO.getId())) {
+            throw new CustomerNotFoundException("Customer not found with ID: " + customerDTO.getId());
+        }
+        
         Customer customer = dtoMapper.fromCustomerDTO(customerDTO);
+        
+        // Set audit fields if provided
+        if (customerDTO.getLastModifiedBy() != null) {
+            customer.setLastModifiedBy(customerDTO.getLastModifiedBy());
+            customer.setLastModifiedDate(new Date());
+        }
+        
         Customer savedCustomer = customerRepository.save(customer);
         return dtoMapper.fromCustomer(savedCustomer);
     }
@@ -204,7 +324,6 @@ public class BankAccountServiceImpl implements BankAccountService {
         List<AccountOperation> accountOperations = accountOperationRepository.findByBankAccountId(accountId);
         return accountOperations.stream().map(op -> dtoMapper.fromAccountOperation(op)).collect(Collectors.toList());
     }
-
     
     @Override
     public AccountHistoryDTO getAccountHistory(String accountId, int page, int size) throws BankAccountNotFoundException {
@@ -225,6 +344,12 @@ public class BankAccountServiceImpl implements BankAccountService {
     @Override
     @Transactional
     public void applyInterest(String accountId) throws BankAccountNotFoundException {
+        applyInterest(accountId, "system");
+    }
+    
+    @Override
+    @Transactional
+    public void applyInterest(String accountId, String username) throws BankAccountNotFoundException {
         BankAccount bankAccount = bankAccountRepository.findById(accountId)
                 .orElseThrow(() -> new BankAccountNotFoundException("BankAccount not found"));
         
@@ -235,28 +360,63 @@ public class BankAccountServiceImpl implements BankAccountService {
         SavingAccount savingAccount = (SavingAccount) bankAccount;
         double interestAmount = savingAccount.getBalance() * savingAccount.getInterestRate() / 100;
         
+        // Record the interest operation
         AccountOperation accountOperation = new AccountOperation();
         accountOperation.setType(OperationType.CREDIT);
         accountOperation.setAmount(interestAmount);
         accountOperation.setDescription("Interest Applied");
         accountOperation.setOperationDate(new Date());
         accountOperation.setBankAccount(savingAccount);
+        
+        // Set user who performed the operation
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            accountOperation.setUser(user);
+        }
+        
         accountOperationRepository.save(accountOperation);
         
+        // Update account balance
         savingAccount.setBalance(savingAccount.getBalance() + interestAmount);
+        
+        // Update last modified info
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            savingAccount.setLastModifiedBy(user);
+            savingAccount.setLastModifiedDate(new Date());
+        }
+        
         bankAccountRepository.save(savingAccount);
         
-        log.info("Interest applied to account: " + accountId + ", amount: " + interestAmount);
+        log.info("Interest applied to account: " + accountId + ", amount: " + interestAmount + " by " + username);
     }
     
     @Override
     @Transactional
     public void updateAccountStatus(String accountId, AccountStatus status) throws BankAccountNotFoundException {
+        updateAccountStatus(accountId, status, "system");
+    }
+    
+    @Override
+    @Transactional
+    public void updateAccountStatus(String accountId, AccountStatus status, String username) throws BankAccountNotFoundException {
         BankAccount bankAccount = bankAccountRepository.findById(accountId)
                 .orElseThrow(() -> new BankAccountNotFoundException("BankAccount not found"));
+                
         bankAccount.setStatus(status);
+        
+        // Update last modified info
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            bankAccount.setLastModifiedBy(user);
+            bankAccount.setLastModifiedDate(new Date());
+        }
+        
         bankAccountRepository.save(bankAccount);
-        log.info("Account status updated for account: " + accountId + ", new status: " + status);
+        log.info("Account status updated for account: " + accountId + ", new status: " + status + " by " + username);
     }
 
     @Override
