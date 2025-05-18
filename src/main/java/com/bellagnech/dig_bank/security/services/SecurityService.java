@@ -66,4 +66,11 @@ public interface SecurityService {
      * @param enabled the enabled status to set
      */
     void setUserEnabled(String username, boolean enabled);
+    
+    /**
+     * Update user information
+     * @param user the user information to update
+     * @return the updated user
+     */
+    AppUser updateUser(AppUser user);
 }

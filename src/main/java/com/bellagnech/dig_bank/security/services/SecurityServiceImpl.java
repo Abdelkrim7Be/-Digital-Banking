@@ -179,6 +179,25 @@ public class SecurityServiceImpl implements SecurityService {
         userRepository.save(user);
     }
     
+    @Override
+    @Transactional
+    public AppUser updateUser(AppUser user) {
+        log.info("Updating user: {}", user.getUsername());
+        
+        // Find existing user
+        AppUser existingUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + user.getId()));
+        
+        // Only update allowed fields
+        existingUser.setEmail(user.getEmail());
+        
+        // Update audit information
+        existingUser.setLastModifiedBy(getCurrentUsername());
+        existingUser.setLastModifiedDate(new Date());
+        
+        return userRepository.save(existingUser);
+    }
+    
     /**
      * Get the username of the currently authenticated user
      * @return the username, or "system" if no user is authenticated
