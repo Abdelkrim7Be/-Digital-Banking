@@ -7,6 +7,7 @@ import com.bellagnech.dig_bank.security.services.CustomUserDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -18,6 +19,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -34,7 +37,8 @@ public class SecurityConfig {
             "/v3/api-docs/**", 
             "/h2-console/**",
             "/login",
-            "/api/auth/**"
+            "/api/auth/**",
+            "/error"
     };
     
     /**
@@ -69,6 +73,22 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(WHITE_LIST_URLS).permitAll()
+                // Allow read-only operations for authenticated users
+                .requestMatchers(HttpMethod.GET, "/customers/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/accounts/**").authenticated()
+                // Restrict administrative operations to ADMIN role
+                .requestMatchers(HttpMethod.POST, "/customers/**").hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(HttpMethod.PUT, "/customers/**").hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(HttpMethod.DELETE, "/customers/**").hasRole("ADMIN")
+                // Account operations require specific roles
+                .requestMatchers(HttpMethod.POST, "/accounts/current").hasAnyRole("ADMIN", "ACCOUNT_MANAGER")
+                .requestMatchers(HttpMethod.POST, "/accounts/saving").hasAnyRole("ADMIN", "ACCOUNT_MANAGER")
+                .requestMatchers(HttpMethod.PUT, "/accounts/**/status").hasAnyRole("ADMIN", "ACCOUNT_MANAGER")
+                // Allow transactions for authenticated users with TELLER role
+                .requestMatchers(HttpMethod.POST, "/accounts/**/debit").hasAnyRole("ADMIN", "TELLER", "ACCOUNT_MANAGER")
+                .requestMatchers(HttpMethod.POST, "/accounts/**/credit").hasAnyRole("ADMIN", "TELLER", "ACCOUNT_MANAGER")
+                .requestMatchers(HttpMethod.POST, "/accounts/transfer").hasAnyRole("ADMIN", "TELLER", "ACCOUNT_MANAGER")
+                // Default rule: require authentication for all other requests
                 .anyRequest().authenticated())
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -78,6 +98,28 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class)
             .headers(headers -> 
                 headers.frameOptions(frameOptions -> frameOptions.disable())) // For H2 console
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(401);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"" + 
+                        authException.getMessage() + "\"}");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(403);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Access Denied\",\"message\":\"" + 
+                        accessDeniedException.getMessage() + "\"}");
+                }))
+            .logout(logout -> logout
+                .logoutRequestMatcher(new AntPathRequestMatcher("/api/auth/logout"))
+                .logoutSuccessHandler((request, response, authentication) -> {
+                    response.setStatus(200);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"message\":\"Logout successful\"}");
+                })
+                .invalidateHttpSession(true)
+                .clearAuthentication(true))
             .build();
     }
 
