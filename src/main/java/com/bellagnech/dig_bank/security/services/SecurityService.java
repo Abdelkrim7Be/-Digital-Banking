@@ -1,5 +1,6 @@
 package com.bellagnech.dig_bank.security.services;
 
+import com.bellagnech.dig_bank.entities.AppRole;
 import com.bellagnech.dig_bank.entities.AppUser;
 import com.bellagnech.dig_bank.security.dtos.RegisterRequest;
 
@@ -73,4 +74,27 @@ public interface SecurityService {
      * @return the updated user
      */
     AppUser updateUser(AppUser user);
+    
+    /**
+     * Check if a user exists by username
+     * @param username the username to check
+     * @return true if the user exists
+     */
+    boolean userExists(String username);
+    
+    /**
+     * Create a role if it does not exist
+     * @param name the name of the role
+     * @return the created or existing role
+     */
+    AppRole createRoleIfNotFound(String name);
+    
+    /**
+     * Register a new user with username, email, and password
+     * @param username the username of the user
+     * @param email the email of the user
+     * @param password the password of the user
+     * @return the created user
+     */
+    AppUser registerUser(String username, String email, String password);
 }

@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Implementation of the SecurityService interface
@@ -208,5 +209,48 @@ public class SecurityServiceImpl implements SecurityService {
             return "system";
         }
         return authentication.getName();
+    }
+
+    @Override
+    public boolean userExists(String username) {
+        return userRepository.existsByUsername(username);
+    }
+    
+    @Override
+    public AppRole createRoleIfNotFound(String name) {
+        Optional<AppRole> optionalRole = roleRepository.findByName(name);
+        if (optionalRole.isPresent()) {
+            return optionalRole.get();
+        }
+        
+        AppRole role = new AppRole();
+        role.setName(name);
+        return roleRepository.save(role);
+    }
+    
+    @Override
+    public AppUser registerUser(String username, String email, String password) {
+        // Check if username is already taken
+        if (userRepository.existsByUsername(username)) {
+            log.warn("Username {} already exists", username);
+            throw new UserAlreadyExistsException("Username already exists: " + username);
+        }
+        
+        // Check if email is already taken
+        if (userRepository.existsByEmail(email)) {
+            log.warn("Email {} already exists", email);
+            throw new UserAlreadyExistsException("Email already exists: " + email);
+        }
+        
+        // Create new user
+        AppUser user = new AppUser();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setCreatedDate(new Date());
+        user.setEnabled(true);
+        
+        log.info("Registering new user: {}", username);
+        return userRepository.save(user);
     }
 }
