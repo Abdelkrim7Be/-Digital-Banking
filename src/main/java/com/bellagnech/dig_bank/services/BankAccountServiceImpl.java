@@ -51,7 +51,6 @@ public class BankAccountServiceImpl implements BankAccountService {
         Customer customer=customerRepository.findById(customerId).orElse(null);
         if(customer==null)
             throw new CustomerNotFoundException("Customer not found");
-        BankAccount bankAccount;
         CurrentAccount currentAccount=new CurrentAccount();
         currentAccount.setId(UUID.randomUUID().toString());
         currentAccount.setBalance(initialBalance);
@@ -69,7 +68,6 @@ public class BankAccountServiceImpl implements BankAccountService {
         Customer customer=customerRepository.findById(customerId).orElse(null);
         if(customer==null)
             throw new CustomerNotFoundException("Customer not found");
-        BankAccount bankAccount;
         SavingAccount savingAccount=new SavingAccount();
         savingAccount.setId(UUID.randomUUID().toString());
         savingAccount.setBalance(initialBalance);

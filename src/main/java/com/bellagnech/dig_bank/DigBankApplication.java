@@ -11,6 +11,13 @@ import com.bellagnech.dig_bank.repositories.AccountOperationRepository;
 import com.bellagnech.dig_bank.repositories.BankAccountRepository;
 import com.bellagnech.dig_bank.repositories.CustomerRepository;
 import com.bellagnech.dig_bank.services.BankAccountService;
+import com.bellagnech.dig_bank.dtos.BankAccountDTO;
+import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
+import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
+import com.bellagnech.dig_bank.entities.AccountOperation;
+import com.bellagnech.dig_bank.entities.CurrentAccount;
+import com.bellagnech.dig_bank.entities.Customer;
+import com.bellagnech.dig_bank.entities.SavingAccount;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -85,11 +92,17 @@ public class DigBankApplication {
                 try {
                     bankAccountService.saveCurrentBankAccount(Math.random()*90000, 9000, customer.getId());
                     bankAccountService.saveSavingBankAccount(Math.random()*12000, 5.5, customer.getId());
-                    List<BankAccount> bankAccounts = bankAccountService.bankAccountList();
-                    for (BankAccount bankAccount : bankAccounts) {
+                    List<BankAccountDTO> bankAccounts = bankAccountService.bankAccountList();
+                    for (BankAccountDTO bankAccount : bankAccounts) {
                         for (int i = 0; i < 10; i++) {
-                            bankAccountService.credit(bankAccount.getId(),10000+Math.random()*120000,"Credit");
-                            bankAccountService.debit(bankAccount.getId(),1000+Math.random()*9000,"Debit");
+                            String accountId;
+                            if (bankAccount instanceof SavingBankAccountDTO) {
+                                accountId = ((SavingBankAccountDTO) bankAccount).getId();
+                            } else {
+                                accountId = ((CurrentBankAccountDTO) bankAccount).getId();
+                            }
+                            bankAccountService.credit(accountId, 10000 + Math.random() * 120000, "Credit");
+                            bankAccountService.debit(accountId, 1000 + Math.random() * 9000, "Debit");
                         }
                     }
                 } catch (CustomerNotFoundException e) {
