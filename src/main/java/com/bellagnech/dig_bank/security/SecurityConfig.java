@@ -1,6 +1,7 @@
 package com.bellagnech.dig_bank.security;
 
 import com.bellagnech.dig_bank.security.jwt.JwtAuthenticationFilter;
+import com.bellagnech.dig_bank.security.jwt.JwtAuthorizationFilter;
 import com.bellagnech.dig_bank.security.jwt.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
@@ -44,6 +45,9 @@ public class SecurityConfig {
             new JwtAuthenticationFilter(authenticationManager, jwtUtil, objectMapper);
         jwtAuthenticationFilter.setFilterProcessesUrl("/api/auth/login");
         
+        // Create JWT authorization filter
+        JwtAuthorizationFilter jwtAuthorizationFilter = new JwtAuthorizationFilter(jwtUtil);
+        
         return http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
@@ -54,6 +58,7 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .oauth2ResourceServer(oauth2 -> oauth2.jwt())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class)
             .headers(headers -> 
                 headers.frameOptions(frameOptions -> frameOptions.disable())) // For H2 console
             .build();
