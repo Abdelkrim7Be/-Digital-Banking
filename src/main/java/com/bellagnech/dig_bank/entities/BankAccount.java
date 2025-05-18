@@ -25,4 +25,14 @@ public abstract class BankAccount {
     private Customer customer;
     @OneToMany(mappedBy = "bankAccount", fetch = FetchType.LAZY)
     private List<AccountOperation> accountOperations;
+    
+    @ManyToOne
+    @JoinColumn(name = "created_by_user_id")
+    private AppUser createdBy;
+    
+    @ManyToOne
+    @JoinColumn(name = "last_modified_by_user_id")
+    private AppUser lastModifiedBy;
+    
+    private Date lastModifiedDate;
 }

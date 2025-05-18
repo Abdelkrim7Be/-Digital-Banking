@@ -20,4 +20,14 @@ public class Customer {
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private List<BankAccount> bankAccounts;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private AppUser user;
+
+    // Audit fields
+    private String createdBy;
+    private java.util.Date createdDate;
+    private String lastModifiedBy;
+    private java.util.Date lastModifiedDate;
 }

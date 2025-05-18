@@ -20,4 +20,7 @@ public class AccountOperation {
     private String description;
     @ManyToOne
     private BankAccount bankAccount;
+    @ManyToOne
+    @JoinColumn(name = "performed_by_user_id")
+    private AppUser performedBy;
 }
