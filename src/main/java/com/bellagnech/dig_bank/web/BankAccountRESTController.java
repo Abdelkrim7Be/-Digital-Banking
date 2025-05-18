@@ -58,11 +58,5 @@ public class BankAccountRESTController {
         bankAccountService.credit(accountId, amount, description);
     }
     
-    @PostMapping("/transfer")
-    public void transfer(@RequestBody TransferRequestDTO request) throws BankAccountNotFoundException, BalanceNotSufficientException {
-        bankAccountService.transfer(
-            request.getAccountIdSource(),
-            request.getAccountIdDestination(),
-            request.getAmount());
-    }
+    
 }
