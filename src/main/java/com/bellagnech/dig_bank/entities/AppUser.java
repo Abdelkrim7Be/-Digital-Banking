@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -35,12 +36,12 @@ public class AppUser {
     )
     private List<AppRole> roles = new ArrayList<>();
     
-    @OneToMany(mappedBy = "user")
+    // Fix: Change mappedBy from "user" to "owner" to match property in Customer entity
+    @OneToMany(mappedBy = "owner")
     private List<Customer> customers = new ArrayList<>();
     
-    // Audit fields
     private String createdBy;
-    private java.util.Date createdDate;
+    private Date createdDate;
     private String lastModifiedBy;
-    private java.util.Date lastModifiedDate;
+    private Date lastModifiedDate;
 }
