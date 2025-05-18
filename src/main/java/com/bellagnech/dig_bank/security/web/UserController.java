@@ -4,7 +4,6 @@ import com.bellagnech.dig_bank.entities.AppUser;
 import com.bellagnech.dig_bank.security.dtos.PasswordChangeRequest;
 import com.bellagnech.dig_bank.security.dtos.UserProfileDTO;
 import com.bellagnech.dig_bank.security.exceptions.InvalidCredentialsException;
-import com.bellagnech.dig_bank.security.exceptions.UserNotFoundException;
 import com.bellagnech.dig_bank.security.services.SecurityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

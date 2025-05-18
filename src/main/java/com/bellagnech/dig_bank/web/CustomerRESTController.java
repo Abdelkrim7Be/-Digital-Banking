@@ -5,8 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.exceptions.CustomerNotFoundException;
 import com.bellagnech.dig_bank.services.BankAccountService;
-import com.bellagnech.dig_bank.security.services.SecurityService;
-import com.bellagnech.dig_bank.entities.AppUser;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -35,7 +33,6 @@ import java.util.List;
 @Tag(name = "Customer Management", description = "APIs for managing bank customers")
 public class CustomerRESTController {
     private BankAccountService bankAccountService;
-    private SecurityService securityService;
     
     @Operation(summary = "Get all customers", description = "Retrieves a list of all customers in the system")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved customer list")

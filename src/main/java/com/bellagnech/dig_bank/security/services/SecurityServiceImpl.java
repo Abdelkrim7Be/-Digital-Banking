@@ -100,9 +100,6 @@ public class SecurityServiceImpl implements SecurityService {
         // Find user and role
         AppUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-                
-        AppRole role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new RoleNotFoundException("Role not found: " + roleName));
         
         // Check if user has the role
         if (user.getRoles().stream().noneMatch(r -> r.getName().equals(roleName))) {

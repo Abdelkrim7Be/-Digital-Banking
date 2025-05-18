@@ -8,8 +8,6 @@ import com.bellagnech.dig_bank.exceptions.CustomerNotFoundException;
 import com.bellagnech.dig_bank.services.BankAccountService;
 import com.bellagnech.dig_bank.dtos.AccountHistoryDTO;
 import com.bellagnech.dig_bank.enums.AccountStatus;
-import com.bellagnech.dig_bank.security.services.SecurityService;
-import com.bellagnech.dig_bank.entities.AppUser;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -32,7 +30,6 @@ import org.springframework.data.domain.Page;
 @Slf4j
 public class BankAccountRESTController {
     private BankAccountService bankAccountService;
-    private SecurityService securityService;
 
     @Operation(summary = "Get account by ID", description = "Retrieves bank account details by its ID")
     @ApiResponses(value = {

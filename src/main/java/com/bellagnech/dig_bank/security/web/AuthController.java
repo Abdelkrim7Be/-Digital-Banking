@@ -7,6 +7,7 @@ import com.bellagnech.dig_bank.security.dtos.RegisterRequest;
 import com.bellagnech.dig_bank.security.exceptions.InvalidCredentialsException;
 import com.bellagnech.dig_bank.security.jwt.JwtUtil;
 import com.bellagnech.dig_bank.security.services.SecurityService;
+import com.bellagnech.dig_bank.security.services.TokenBlacklistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -43,6 +44,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final SecurityService securityService;
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Operation(summary = "Authenticate user", description = "Authenticate with username and password to get JWT tokens")
     @ApiResponses(value = {
