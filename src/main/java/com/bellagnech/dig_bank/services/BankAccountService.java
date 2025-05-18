@@ -1,5 +1,6 @@
 package com.bellagnech.dig_bank.services;
 
+import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
 import com.bellagnech.dig_bank.dtos.BankAccountDTO;
 import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
 import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
@@ -39,5 +40,6 @@ public interface BankAccountService {
     CustomerDTO updateCustomer(CustomerDTO customerDTO);
     // Delete a customer
     void deleteCustomer(Long customerID);
-
+    // Get the account history for a specific account
+    List<AccountOperationDTO> accountHistory(String accountId);
 }

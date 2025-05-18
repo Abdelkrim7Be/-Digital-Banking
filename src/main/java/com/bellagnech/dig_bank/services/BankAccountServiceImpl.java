@@ -12,6 +12,7 @@ import com.bellagnech.dig_bank.repositories.BankAccountRepository;
 import com.bellagnech.dig_bank.repositories.CustomerRepository;
 import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.mappers.BankAccountMapperImpl;
+import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
 import com.bellagnech.dig_bank.dtos.BankAccountDTO;
 import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
 import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
@@ -184,7 +185,13 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     @Override
-    public void deleteCustomer(Long customerID){
+    public void deleteCustomer(Long customerID) {
         customerRepository.deleteById(customerID);
+    }
+    
+    @Override
+    public List<AccountOperationDTO> accountHistory(String accountId) {
+        List<AccountOperation> accountOperations = accountOperationRepository.findByBankAccountId(accountId);
+        return accountOperations.stream().map(op -> dtoMapper.fromAccountOperation(op)).collect(Collectors.toList());
     }
 }
