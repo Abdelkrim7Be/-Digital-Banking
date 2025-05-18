@@ -1,6 +1,5 @@
 package com.bellagnech.dig_bank;
 
-import com.bellagnech.dig_bank.entities.*;
 import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.enums.AccountStatus;
 import com.bellagnech.dig_bank.enums.OperationType;
@@ -20,6 +19,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 import java.util.Date;
 import java.util.UUID;
 import java.util.List;
@@ -32,7 +32,8 @@ public class DigBankApplication {
 		SpringApplication.run(DigBankApplication.class, args);
 	}
 
-	//@Bean
+	@Bean
+	@Profile("dev") // Only activate in dev profile
 	public CommandLineRunner start(CustomerRepository customerRepository,
                            BankAccountRepository bankAccountRepository,
                            AccountOperationRepository accountOperationRepository) {

@@ -1,10 +1,9 @@
 package com.bellagnech.dig_bank.dtos;
 
-import lombok.Data;
 import com.bellagnech.dig_bank.enums.OperationType;
+import lombok.Data;
 
 import java.util.Date;
-
 
 @Data
 public class AccountOperationDTO {

@@ -19,14 +19,14 @@ import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
 import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import com.bellagnech.dig_bank.enums.AccountStatus;
 
 @Service
 @Transactional
@@ -41,8 +41,13 @@ public class BankAccountServiceImpl implements BankAccountService {
     // Save a new customer to the system
     @Override
     public CustomerDTO saveCustomer(CustomerDTO customerDTO) {
-        // Creation d'un client
         log.info("Saving new Customer");
+        
+        // Check if email already exists
+        if (customerDTO.getId() == null && customerRepository.existsByEmail(customerDTO.getEmail())) {
+            throw new IllegalArgumentException("Email already exists: " + customerDTO.getEmail());
+        }
+        
         Customer customer = dtoMapper.fromCustomerDTO(customerDTO);
         Customer savedCustomer = customerRepository.save(customer);
         return dtoMapper.fromCustomer(savedCustomer);
@@ -113,6 +118,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     // Withdraw money from an account
     @Override
+    @Transactional
     public void debit(String accountId, double amount, String description) throws BankAccountNotFoundException, BalanceNotSufficientException {
          BankAccount bankAccount = bankAccountRepository.findById(accountId)
                 .orElseThrow(() -> new BankAccountNotFoundException("BankAccount not found"));
@@ -131,6 +137,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     // Deposit money into an account
     @Override
+    @Transactional
     public void credit(String accountId, double amount, String description) throws BankAccountNotFoundException {
         BankAccount bankAccount = bankAccountRepository.findById(accountId)
                 .orElseThrow(() -> new BankAccountNotFoundException("BankAccount not found"));
@@ -147,6 +154,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     // Transfer money between two accounts
     @Override
+    @Transactional
     public void transfer(String accountIdSource, String accountIdDestination, Double amount)
             throws BankAccountNotFoundException, BalanceNotSufficientException {
         debit(accountIdSource, amount, "Transfer to " + accountIdDestination);
@@ -212,5 +220,60 @@ public class BankAccountServiceImpl implements BankAccountService {
         accountHistoryDTO.setPageSize(size);
         accountHistoryDTO.setTotalPages(accountOperations.getTotalPages());
         return accountHistoryDTO;
+    }
+    
+    @Override
+    @Transactional
+    public void applyInterest(String accountId) throws BankAccountNotFoundException {
+        BankAccount bankAccount = bankAccountRepository.findById(accountId)
+                .orElseThrow(() -> new BankAccountNotFoundException("BankAccount not found"));
+        
+        if (!(bankAccount instanceof SavingAccount)) {
+            throw new IllegalArgumentException("Interest can only be applied to Saving Accounts");
+        }
+        
+        SavingAccount savingAccount = (SavingAccount) bankAccount;
+        double interestAmount = savingAccount.getBalance() * savingAccount.getInterestRate() / 100;
+        
+        AccountOperation accountOperation = new AccountOperation();
+        accountOperation.setType(OperationType.CREDIT);
+        accountOperation.setAmount(interestAmount);
+        accountOperation.setDescription("Interest Applied");
+        accountOperation.setOperationDate(new Date());
+        accountOperation.setBankAccount(savingAccount);
+        accountOperationRepository.save(accountOperation);
+        
+        savingAccount.setBalance(savingAccount.getBalance() + interestAmount);
+        bankAccountRepository.save(savingAccount);
+        
+        log.info("Interest applied to account: " + accountId + ", amount: " + interestAmount);
+    }
+    
+    @Override
+    @Transactional
+    public void updateAccountStatus(String accountId, AccountStatus status) throws BankAccountNotFoundException {
+        BankAccount bankAccount = bankAccountRepository.findById(accountId)
+                .orElseThrow(() -> new BankAccountNotFoundException("BankAccount not found"));
+        bankAccount.setStatus(status);
+        bankAccountRepository.save(bankAccount);
+        log.info("Account status updated for account: " + accountId + ", new status: " + status);
+    }
+
+    @Override
+    public Page<CustomerDTO> getCustomersPageable(int page, int size) {
+        Page<Customer> customersPage = customerRepository.findAll(PageRequest.of(page, size));
+        List<CustomerDTO> customerDTOS = customersPage.getContent().stream()
+                .map(customer -> dtoMapper.fromCustomer(customer))
+                .collect(Collectors.toList());
+        return new PageImpl<>(customerDTOS, PageRequest.of(page, size), customersPage.getTotalElements());
+    }
+
+    @Override
+    public Page<CustomerDTO> searchCustomers(String keyword, int page, int size) {
+        Page<Customer> customersPage = customerRepository.searchCustomers(keyword, PageRequest.of(page, size));
+        List<CustomerDTO> customerDTOS = customersPage.getContent().stream()
+                .map(customer -> dtoMapper.fromCustomer(customer))
+                .collect(Collectors.toList());
+        return new PageImpl<>(customerDTOS, PageRequest.of(page, size), customersPage.getTotalElements());
     }
 }

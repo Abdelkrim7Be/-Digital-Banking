@@ -10,6 +10,8 @@ import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.exceptions.BalanceNotSufficientException;
 import com.bellagnech.dig_bank.exceptions.BankAccountNotFoundException;
 import com.bellagnech.dig_bank.exceptions.CustomerNotFoundException;
+import com.bellagnech.dig_bank.enums.AccountStatus;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -45,4 +47,12 @@ public interface BankAccountService {
     List<AccountOperationDTO> accountHistory(String accountId);
     // Get the account history for a specific account with pagination
     AccountHistoryDTO getAccountHistory(String accountId, int page, int size) throws BankAccountNotFoundException;
+    // Add interest rate calculation method
+    void applyInterest(String accountId) throws BankAccountNotFoundException;
+    // Add account status management method
+    void updateAccountStatus(String accountId, AccountStatus status) throws BankAccountNotFoundException;
+    // Get paginated list of customers
+    Page<CustomerDTO> getCustomersPageable(int page, int size);
+    // Add this method to the interface
+    Page<CustomerDTO> searchCustomers(String keyword, int page, int size);
 }
