@@ -1,9 +1,9 @@
 package com.bellagnech.dig_bank.services;
 
-import com.bellagnech.dig_bank.entities.BankAccount;
-import com.bellagnech.dig_bank.entities.CurrentAccount;
+import com.bellagnech.dig_bank.dtos.BankAccountDTO;
+import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
+import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
 import com.bellagnech.dig_bank.entities.Customer;
-import com.bellagnech.dig_bank.entities.SavingAccount;
 import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.exceptions.BalanceNotSufficientException;
 import com.bellagnech.dig_bank.exceptions.BankAccountNotFoundException;
@@ -15,11 +15,11 @@ public interface BankAccountService {
     // Save a new customer to the system
     CustomerDTO saveCustomer(CustomerDTO customer);
     // Create a new current account with overdraft facility
-    CurrentAccount saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId) throws CustomerNotFoundException;
+    CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId) throws CustomerNotFoundException;    // Create a new savings account with interest rate
     // Create a new savings account with interest rate
-    SavingAccount saveSavingBankAccount(double initialBalance, double interestRate, Long customerId) throws CustomerNotFoundException;
+    SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId) throws CustomerNotFoundException;
     // Find a bank account by its ID
-    BankAccount getBankAccount(String accountId) throws BankAccountNotFoundException;
+    BankAccountDTO getBankAccount(String accountId) throws BankAccountNotFoundException;
     // Withdraw money from an account
     void debit(String accountId, double amount, String description) throws BankAccountNotFoundException, BalanceNotSufficientException;
     // Deposit money into an account
@@ -28,7 +28,7 @@ public interface BankAccountService {
     void transfer(String accountIdSource, String accountIdDestination, Double amount)
     throws BankAccountNotFoundException, BalanceNotSufficientException;
     // List of all bank accounts 
-    List<BankAccount> bankAccountList();
+    List<BankAccountDTO> bankAccountList();
     // Get all customers from the database (returns entities)
     List<Customer> listCustomers();
     // Get all customers as DTOs
