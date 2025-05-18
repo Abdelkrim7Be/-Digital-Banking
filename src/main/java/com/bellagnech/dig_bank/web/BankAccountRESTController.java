@@ -6,6 +6,7 @@ import com.bellagnech.dig_bank.exceptions.BalanceNotSufficientException;
 import com.bellagnech.dig_bank.exceptions.BankAccountNotFoundException;
 import com.bellagnech.dig_bank.exceptions.CustomerNotFoundException;
 import com.bellagnech.dig_bank.services.BankAccountService;
+import com.bellagnech.dig_bank.dtos.AccountHistoryDTO;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -59,8 +60,16 @@ public class BankAccountRESTController {
         bankAccountService.credit(accountId, amount, description);
     }
     
-    @GetMapping("/accounts/{accountId}/operations")
+    @GetMapping("/{accountId}/operations")
     public List<AccountOperationDTO> getHistory(@PathVariable String accountId) {
         return bankAccountService.accountHistory(accountId);
+    }
+    
+    @GetMapping("/{accountId}/pageOperations")
+    public AccountHistoryDTO getAccountHistory(
+            @PathVariable String accountId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "5") int size) throws BankAccountNotFoundException {
+        return bankAccountService.getAccountHistory(accountId, page, size);
     }
 }

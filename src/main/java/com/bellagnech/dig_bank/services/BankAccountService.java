@@ -1,5 +1,6 @@
 package com.bellagnech.dig_bank.services;
 
+import com.bellagnech.dig_bank.dtos.AccountHistoryDTO;
 import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
 import com.bellagnech.dig_bank.dtos.BankAccountDTO;
 import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
@@ -42,4 +43,6 @@ public interface BankAccountService {
     void deleteCustomer(Long customerID);
     // Get the account history for a specific account
     List<AccountOperationDTO> accountHistory(String accountId);
+    // Get the account history for a specific account with pagination
+    AccountHistoryDTO getAccountHistory(String accountId, int page, int size) throws BankAccountNotFoundException;
 }
