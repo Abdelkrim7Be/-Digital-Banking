@@ -79,4 +79,10 @@ public interface BankAccountService {
     Page<CustomerDTO> getCustomersPageableByUser(String username, int page, int size);
     Page<CustomerDTO> searchCustomersByUser(String username, String keyword, int page, int size);
     boolean customerBelongsToUser(Long customerId, String username);
+    
+    // Add methods to retrieve account operations by user
+    List<AccountOperationDTO> accountOperationsByUser(String username);
+    Page<AccountOperationDTO> accountOperationsByUserPageable(String username, int page, int size);
+    List<AccountOperationDTO> accountOperationsByAccountAndUser(String accountId, String username) throws BankAccountNotFoundException;
+    AccountHistoryDTO getAccountHistoryByUser(String accountId, String username, int page, int size) throws BankAccountNotFoundException;
 }

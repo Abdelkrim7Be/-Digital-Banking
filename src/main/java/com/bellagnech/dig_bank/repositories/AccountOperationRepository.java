@@ -1,6 +1,7 @@
 package com.bellagnech.dig_bank.repositories;
 
 import com.bellagnech.dig_bank.entities.AccountOperation;
+import com.bellagnech.dig_bank.entities.AppUser;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,12 @@ public interface AccountOperationRepository extends JpaRepository<AccountOperati
 
     // Find all operations for a given bank account ID with pagination.
     Page<AccountOperation> findByBankAccountId(String accountId, Pageable pageable);
+    
+    // Add methods to find operations by user
+    List<AccountOperation> findByUser(AppUser user);
+    Page<AccountOperation> findByUser(AppUser user, Pageable pageable);
+    
+    // Find operations for a specific account performed by a specific user
+    List<AccountOperation> findByBankAccountIdAndUser(String accountId, AppUser user);
+    Page<AccountOperation> findByBankAccountIdAndUser(String accountId, AppUser user, Pageable pageable);
 }

@@ -1,10 +1,11 @@
 package com.bellagnech.dig_bank.entities;
 
+import com.bellagnech.dig_bank.enums.OperationType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.bellagnech.dig_bank.enums.OperationType;
 
 import java.util.Date;
 
@@ -15,12 +16,15 @@ public class AccountOperation {
     private Long id;
     private Date operationDate;
     private double amount;
+    private String description;
     @Enumerated(EnumType.STRING)
     private OperationType type;
-    private String description;
     @ManyToOne
     private BankAccount bankAccount;
-    @ManyToOne
-    @JoinColumn(name = "performed_by_user_id")
-    private AppUser performedBy;
+    
+    // Add relationship with AppUser to track who performed the operation
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private AppUser user;
 }

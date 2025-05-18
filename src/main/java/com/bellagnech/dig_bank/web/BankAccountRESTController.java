@@ -23,6 +23,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 @RestController
 @AllArgsConstructor
@@ -202,6 +203,57 @@ public class BankAccountRESTController {
         
         // Track user performing transfer by passing username to service
         bankAccountService.transfer(sourceAccountId, destinationAccountId, amount, username);
+    }
+    
+    @Operation(summary = "Get my operations", description = "Retrieves all operations performed by the current user")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved operations")
+    @GetMapping("/my-operations")
+    @PreAuthorize("isAuthenticated()")
+    public List<AccountOperationDTO> getMyOperations() {
+        String username = getCurrentUsername();
+        log.info("User {} is requesting their operations", username);
+        return bankAccountService.accountOperationsByUser(username);
+    }
+    
+    @Operation(summary = "Get my operations with pagination", description = "Retrieves paginated operations performed by the current user")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved operations")
+    @GetMapping("/my-operations/page")
+    @PreAuthorize("isAuthenticated()")
+    public Page<AccountOperationDTO> getMyOperationsPage(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "5") int size) {
+        String username = getCurrentUsername();
+        log.info("User {} is requesting their operations page {} with size {}", username, page, size);
+        return bankAccountService.accountOperationsByUserPageable(username, page, size);
+    }
+    
+    @Operation(summary = "Get my operations for account", description = "Retrieves operations performed by the current user on a specific account")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved operations"),
+        @ApiResponse(responseCode = "404", description = "Account not found")
+    })
+    @GetMapping("/{accountId}/my-operations")
+    @PreAuthorize("isAuthenticated()")
+    public List<AccountOperationDTO> getMyOperationsForAccount(@PathVariable String accountId) throws BankAccountNotFoundException {
+        String username = getCurrentUsername();
+        log.info("User {} is requesting their operations for account ID: {}", username, accountId);
+        return bankAccountService.accountOperationsByAccountAndUser(accountId, username);
+    }
+    
+    @Operation(summary = "Get my paginated account history", description = "Retrieves paginated operations performed by the current user on a specific account")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved operations"),
+        @ApiResponse(responseCode = "404", description = "Account not found")
+    })
+    @GetMapping("/{accountId}/my-history")
+    @PreAuthorize("isAuthenticated()")
+    public AccountHistoryDTO getMyAccountHistory(
+            @PathVariable String accountId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "5") int size) throws BankAccountNotFoundException {
+        String username = getCurrentUsername();
+        log.info("User {} is requesting their history for account ID: {}", username, accountId);
+        return bankAccountService.getAccountHistoryByUser(accountId, username, page, size);
     }
     
     /**

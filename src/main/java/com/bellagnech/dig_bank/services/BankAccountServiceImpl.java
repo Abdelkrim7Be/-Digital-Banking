@@ -187,18 +187,21 @@ public class BankAccountServiceImpl implements BankAccountService {
         accountOperation.setOperationDate(new Date());
         accountOperation.setBankAccount(bankAccount);
         
+        // Set the user who performed the operation
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            accountOperation.setUser(user);
+            
+            // Update last modified info
+            bankAccount.setLastModifiedBy(user);
+            bankAccount.setLastModifiedDate(new Date());
+        }
+        
         accountOperationRepository.save(accountOperation);
         
         // Update account balance
         bankAccount.setBalance(bankAccount.getBalance() - amount);
-        
-        // Update last modified info
-        if (!"system".equals(username)) {
-            AppUser user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-            bankAccount.setLastModifiedBy(user);
-            bankAccount.setLastModifiedDate(new Date());
-        }
         
         bankAccountRepository.save(bankAccount);
     }
@@ -224,18 +227,21 @@ public class BankAccountServiceImpl implements BankAccountService {
         accountOperation.setOperationDate(new Date());
         accountOperation.setBankAccount(bankAccount);
         
+        // Set the user who performed the operation
+        if (!"system".equals(username)) {
+            AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            accountOperation.setUser(user);
+            
+            // Update last modified info
+            bankAccount.setLastModifiedBy(user);
+            bankAccount.setLastModifiedDate(new Date());
+        }
+        
         accountOperationRepository.save(accountOperation);
         
         // Update account balance
         bankAccount.setBalance(bankAccount.getBalance() + amount);
-        
-        // Update last modified info
-        if (!"system".equals(username)) {
-            AppUser user = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-            bankAccount.setLastModifiedBy(user);
-            bankAccount.setLastModifiedDate(new Date());
-        }
         
         bankAccountRepository.save(bankAccount);
     }
@@ -587,5 +593,72 @@ public class BankAccountServiceImpl implements BankAccountService {
         }
         
         return customerRepository.existsByIdAndOwner(customerId, user);
+    }
+    
+    // Add methods to retrieve account operations by user
+    @Override
+    public List<AccountOperationDTO> accountOperationsByUser(String username) {
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            
+        List<AccountOperation> accountOperations = accountOperationRepository.findByUser(user);
+        return accountOperations.stream()
+            .map(op -> dtoMapper.fromAccountOperation(op))
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public Page<AccountOperationDTO> accountOperationsByUserPageable(String username, int page, int size) {
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            
+        Page<AccountOperation> accountOperationsPage = accountOperationRepository.findByUser(user, PageRequest.of(page, size));
+        
+        List<AccountOperationDTO> accountOperationDTOS = accountOperationsPage.getContent().stream()
+            .map(op -> dtoMapper.fromAccountOperation(op))
+            .collect(Collectors.toList());
+            
+        return new PageImpl<>(accountOperationDTOS, PageRequest.of(page, size), accountOperationsPage.getTotalElements());
+    }
+    
+    @Override
+    public List<AccountOperationDTO> accountOperationsByAccountAndUser(String accountId, String username) throws BankAccountNotFoundException {
+        // Verify account exists
+        BankAccount bankAccount = bankAccountRepository.findById(accountId)
+            .orElseThrow(() -> new BankAccountNotFoundException("Account not found"));
+            
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            
+        List<AccountOperation> accountOperations = accountOperationRepository.findByBankAccountIdAndUser(accountId, user);
+        return accountOperations.stream()
+            .map(op -> dtoMapper.fromAccountOperation(op))
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public AccountHistoryDTO getAccountHistoryByUser(String accountId, String username, int page, int size) throws BankAccountNotFoundException {
+        BankAccount bankAccount = bankAccountRepository.findById(accountId)
+            .orElseThrow(() -> new BankAccountNotFoundException("Account not Found"));
+            
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+            
+        Page<AccountOperation> accountOperations = accountOperationRepository.findByBankAccountIdAndUser(
+            accountId, user, PageRequest.of(page, size));
+            
+        AccountHistoryDTO accountHistoryDTO = new AccountHistoryDTO();
+        List<AccountOperationDTO> accountOperationDTOs = accountOperations.getContent().stream()
+            .map(op -> dtoMapper.fromAccountOperation(op))
+            .collect(Collectors.toList());
+            
+        accountHistoryDTO.setAccountOperationDTOS(accountOperationDTOs);
+        accountHistoryDTO.setAccountId(bankAccount.getId());
+        accountHistoryDTO.setBalance(bankAccount.getBalance());
+        accountHistoryDTO.setCurrentPage(page);
+        accountHistoryDTO.setPageSize(size);
+        accountHistoryDTO.setTotalPages(accountOperations.getTotalPages());
+        
+        return accountHistoryDTO;
     }
 }

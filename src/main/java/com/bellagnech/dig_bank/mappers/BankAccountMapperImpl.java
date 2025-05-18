@@ -69,7 +69,14 @@ public class BankAccountMapperImpl {
     public AccountOperationDTO fromAccountOperation(AccountOperation accountOperation) {
         AccountOperationDTO accountOperationDTO = new AccountOperationDTO();
         BeanUtils.copyProperties(accountOperation, accountOperationDTO);
+        accountOperationDTO.setBankAccountId(accountOperation.getBankAccount().getId());
+        
+        // Add user information if available
+        if (accountOperation.getUser() != null) {
+            accountOperationDTO.setUserId(accountOperation.getUser().getId());
+            accountOperationDTO.setUsername(accountOperation.getUser().getUsername());
+        }
+        
         return accountOperationDTO;
     }
-        
 }
