@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class FrontendController {
 
-    @RequestMapping(value = { "/", "/{x:[\\w\\-]+}", "/**/{x:[\\w\\-]+}" })
+    @RequestMapping(value = { "/", "/{x:[\\w\\-]+}", "/{x:[\\w\\-]+}/**" })
     public String index() {
         return "forward:/index.html";
     }
