@@ -16,20 +16,12 @@ public class BankAccountMapperImpl {
     public CustomerDTO fromCustomer(Customer customer) {
         CustomerDTO customerDTO = new CustomerDTO();
         BeanUtils.copyProperties(customer, customerDTO);
-        
-        // Map user information if available
-        if (customer.getOwner() != null) {
-            customerDTO.setOwnerId(customer.getOwner().getId());
-            customerDTO.setOwnerUsername(customer.getOwner().getUsername());
-        }
-        
         return customerDTO;
     }
 
     public Customer fromCustomerDTO(CustomerDTO customerDTO) {
         Customer customer = new Customer();
         BeanUtils.copyProperties(customerDTO, customer);
-        // Note: We don't map the owner here as it should be handled by the service
         return customer;
     }
 
@@ -70,13 +62,6 @@ public class BankAccountMapperImpl {
         AccountOperationDTO accountOperationDTO = new AccountOperationDTO();
         BeanUtils.copyProperties(accountOperation, accountOperationDTO);
         accountOperationDTO.setBankAccountId(accountOperation.getBankAccount().getId());
-        
-        // Add user information if available
-        if (accountOperation.getUser() != null) {
-            accountOperationDTO.setUserId(accountOperation.getUser().getId());
-            accountOperationDTO.setUsername(accountOperation.getUser().getUsername());
-        }
-        
         return accountOperationDTO;
     }
 }

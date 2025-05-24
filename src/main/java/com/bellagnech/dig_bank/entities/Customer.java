@@ -2,6 +2,9 @@ package com.bellagnech.dig_bank.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,22 +16,45 @@ import java.util.Date;
 public class Customer {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
     private String name;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email should be valid")
     private String email;
+
     private String phone;
     private String address;
+
+    @Temporal(TemporalType.TIMESTAMP)
     private Date createdDate;
+
     private String createdBy;
+
+    @Temporal(TemporalType.TIMESTAMP)
     private Date lastModifiedDate;
+
     private String lastModifiedBy;
-    
-    // Add relationship with AppUser - optional many-to-one
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private AppUser owner;
-    
-    @OneToMany(mappedBy = "customer")
+
+    @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private List<BankAccount> bankAccounts;
+
+    @PrePersist
+    protected void onCreate() {
+        createdDate = new Date();
+        if (createdBy == null) {
+            createdBy = "system";
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        lastModifiedDate = new Date();
+        if (lastModifiedBy == null) {
+            lastModifiedBy = "system";
+        }
+    }
 }

@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 import java.util.Date;
 import java.util.Map;
 
-/**
- * Response body for validation errors
- */
+// Response body for validation errors
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

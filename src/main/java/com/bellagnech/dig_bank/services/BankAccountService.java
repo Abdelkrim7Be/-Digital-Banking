@@ -5,7 +5,6 @@ import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
 import com.bellagnech.dig_bank.dtos.BankAccountDTO;
 import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
 import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
-import com.bellagnech.dig_bank.entities.Customer;
 import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.exceptions.BalanceNotSufficientException;
 import com.bellagnech.dig_bank.exceptions.BankAccountNotFoundException;
@@ -15,74 +14,71 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 
+// Service interface for managing bank accounts, customers, and banking operations
 public interface BankAccountService {
+
+    // Customer Management
     // Save a new customer to the system
     CustomerDTO saveCustomer(CustomerDTO customer);
-    // Create a new current account with overdraft facility
-    CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId) throws CustomerNotFoundException;
-    // Create a new current account with overdraft facility and track creator
-    CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId, String username) throws CustomerNotFoundException;
-    // Create a new savings account with interest rate
-    SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId) throws CustomerNotFoundException;
-    // Create a new savings account with interest rate and track creator
-    SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId, String username) throws CustomerNotFoundException;
-    // Find a bank account by its ID
-    BankAccountDTO getBankAccount(String accountId) throws BankAccountNotFoundException;
-    // Withdraw money from an account
-    void debit(String accountId, double amount, String description) throws BankAccountNotFoundException, BalanceNotSufficientException;
-    // Withdraw money from an account and track user
-    void debit(String accountId, double amount, String description, String username) throws BankAccountNotFoundException, BalanceNotSufficientException;
-    // Deposit money into an account
-    void credit(String accountId, double amount, String description) throws BankAccountNotFoundException;
-    // Deposit money into an account and track user
-    void credit(String accountId, double amount, String description, String username) throws BankAccountNotFoundException;
-    // Transfer money between two accounts
-    void transfer(String accountIdSource, String accountIdDestination, Double amount)
-    throws BankAccountNotFoundException, BalanceNotSufficientException;
-    // Transfer money between two accounts and track user
-    void transfer(String accountIdSource, String accountIdDestination, Double amount, String username)
-    throws BankAccountNotFoundException, BalanceNotSufficientException;
-    // List of all bank accounts 
-    List<BankAccountDTO> bankAccountList();
-    // Get all customers from the database (returns entities)
-    List<Customer> listCustomers();
+
     // Get all customers as DTOs
     List<CustomerDTO> listCustomersDTO();
-    // Get a specific customer
+
+    // Get a specific customer by ID
     CustomerDTO getCustomer(Long customerId) throws CustomerNotFoundException;
-    // Update a customer
-    CustomerDTO updateCustomer(CustomerDTO customerDTO);
-    // Delete a customer
-    void deleteCustomer(Long customerID);
-    // Get the account history for a specific account
-    List<AccountOperationDTO> accountHistory(String accountId);
-    // Get the account history for a specific account with pagination
-    AccountHistoryDTO getAccountHistory(String accountId, int page, int size) throws BankAccountNotFoundException;
-    // Add interest rate calculation method
-    void applyInterest(String accountId) throws BankAccountNotFoundException;
-    // Add interest rate calculation method with user tracking
-    void applyInterest(String accountId, String username) throws BankAccountNotFoundException;
-    // Add account status management method
-    void updateAccountStatus(String accountId, AccountStatus status) throws BankAccountNotFoundException;
-    // Add account status management method with user tracking
-    void updateAccountStatus(String accountId, AccountStatus status, String username) throws BankAccountNotFoundException;
+
+    // Update an existing customer
+    CustomerDTO updateCustomer(CustomerDTO customerDTO) throws CustomerNotFoundException;
+
+    // Delete a customer by ID
+    void deleteCustomer(Long customerID) throws CustomerNotFoundException;
+
     // Get paginated list of customers
     Page<CustomerDTO> getCustomersPageable(int page, int size);
-    // Add this method to the interface
+
+    // Search customers by keyword with pagination
     Page<CustomerDTO> searchCustomers(String keyword, int page, int size);
-    
-    // New methods for user-customer relationship
-    CustomerDTO saveCustomerForUser(CustomerDTO customer, String username);
-    CustomerDTO updateCustomerForUser(CustomerDTO customerDTO, String username);
-    List<CustomerDTO> listCustomersByUser(String username);
-    CustomerDTO getCustomerForUser(Long customerId, String username) throws CustomerNotFoundException;
-    Page<CustomerDTO> getCustomersPageableByUser(String username, int page, int size);
-    Page<CustomerDTO> searchCustomersByUser(String username, String keyword, int page, int size);
-    boolean customerBelongsToUser(Long customerId, String username);
-    
-    // Add methods to retrieve account operations by user
-    List<AccountOperationDTO> accountOperationsByUser(String username);
-    Page<AccountOperationDTO> accountOperationsByUserPageable(String username, int page, int size);
-    List<AccountOperationDTO> accountOperationsByAccountAndUser(String accountId, String username) throws BankAccountNotFoundException;
-    AccountHistoryDTO getAccountHistoryByUser(String accountId, String username, int page, int size) throws BankAccountNotFoundException;
+
+    // Account Management
+    // Create a new current account with overdraft facility
+    CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId)
+        throws CustomerNotFoundException;
+
+    // Create a new savings account with interest rate
+    SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId)
+        throws CustomerNotFoundException;
+
+    // Find a bank account by its ID
+    BankAccountDTO getBankAccount(String accountId) throws BankAccountNotFoundException;
+
+    // Get list of all bank accounts
+    List<BankAccountDTO> bankAccountList();
+
+    // Get all bank accounts for a specific customer
+    List<BankAccountDTO> getCustomerAccounts(Long customerId) throws CustomerNotFoundException;
+
+    // Update account status
+    void updateAccountStatus(String accountId, AccountStatus status) throws BankAccountNotFoundException;
+
+    // Banking Operations
+    // Withdraw money from an account
+    void debit(String accountId, double amount, String description)
+        throws BankAccountNotFoundException, BalanceNotSufficientException;
+
+    // Deposit money into an account
+    void credit(String accountId, double amount, String description) throws BankAccountNotFoundException;
+
+    // Transfer money between two accounts
+    void transfer(String accountIdSource, String accountIdDestination, Double amount)
+        throws BankAccountNotFoundException, BalanceNotSufficientException;
+
+    // Apply interest to a savings account
+    void applyInterest(String accountId) throws BankAccountNotFoundException;
+
+    // Account History and Operations
+    // Get the account history for a specific account
+    List<AccountOperationDTO> accountHistory(String accountId);
+
+    // Get the account history for a specific account with pagination
+    AccountHistoryDTO getAccountHistory(String accountId, int page, int size) throws BankAccountNotFoundException;
 }
