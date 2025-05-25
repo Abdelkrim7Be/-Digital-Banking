@@ -42,6 +42,11 @@ public class Customer {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private List<BankAccount> bankAccounts;
 
+    // Relation avec User (un Customer peut être lié à un User)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @PrePersist
     protected void onCreate() {
         createdDate = new Date();
