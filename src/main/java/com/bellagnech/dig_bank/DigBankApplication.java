@@ -23,7 +23,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
 
 import java.util.Date;
 import java.util.UUID;
@@ -38,7 +37,7 @@ public class DigBankApplication {
 	}
 
 	@Bean
-	@Profile("dev") // Only activate in dev profile
+	// @Profile("dev") // Removed profile restriction - always initialize data
 	public CommandLineRunner start(CustomerRepository customerRepository,
                            BankAccountRepository bankAccountRepository,
                            AccountOperationRepository accountOperationRepository,
