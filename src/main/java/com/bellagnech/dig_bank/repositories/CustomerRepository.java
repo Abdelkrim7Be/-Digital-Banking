@@ -1,6 +1,7 @@
 package com.bellagnech.dig_bank.repositories;
 
 import com.bellagnech.dig_bank.entities.Customer;
+import com.bellagnech.dig_bank.entities.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
@@ -25,6 +27,12 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     //Find customers by email containing the given string (case insensitive)
     List<Customer> findByEmailContainingIgnoreCase(String email);
+
+    //Find customer by associated user
+    Optional<Customer> findByUser(User user);
+
+    //Find customer by user ID
+    Optional<Customer> findByUserId(Long userId);
 
     //Find customers by phone containing the given string
     List<Customer> findByPhoneContaining(String phone);

@@ -29,13 +29,28 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
+    }
+
+    public Long extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", Long.class));
+    }
+
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+        // Add role to JWT token if userDetails is a User entity
+        if (userDetails instanceof com.bellagnech.dig_bank.entities.User) {
+            com.bellagnech.dig_bank.entities.User user = (com.bellagnech.dig_bank.entities.User) userDetails;
+            extraClaims.put("role", user.getRole().name());
+            extraClaims.put("userId", user.getId());
+        }
+        return generateToken(extraClaims, userDetails);
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {

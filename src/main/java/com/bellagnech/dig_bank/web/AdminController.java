@@ -1,10 +1,8 @@
 package com.bellagnech.dig_bank.web;
 
-import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.entities.User;
 import com.bellagnech.dig_bank.enums.Role;
 import com.bellagnech.dig_bank.repositories.UserRepository;
-import com.bellagnech.dig_bank.services.BankAccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -25,7 +23,6 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminController {
 
-    private final BankAccountService bankAccountService;
     private final UserRepository userRepository;
 
     @Operation(summary = "Get all users", description = "Retrieve all users in the system (ADMIN only)")
@@ -39,15 +36,7 @@ public class AdminController {
         return ResponseEntity.ok(users);
     }
 
-    @Operation(summary = "Get all customers", description = "Retrieve all customers (ADMIN only)")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved customers")
-    @GetMapping("/customers")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
-        log.info("Admin requesting all customers");
-        List<CustomerDTO> customers = bankAccountService.listCustomersDTO();
-        return ResponseEntity.ok(customers);
-    }
+
 
     @Operation(summary = "Get users by role", description = "Retrieve users by specific role (ADMIN only)")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved users")
@@ -66,13 +55,13 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> updateUserStatus(@PathVariable Long userId, @RequestParam boolean enabled) {
         log.info("Admin updating user {} status to: {}", userId, enabled);
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         user.setEnabled(enabled);
         userRepository.save(user);
-        
+
         String message = enabled ? "User enabled successfully" : "User disabled successfully";
         return ResponseEntity.ok(message);
     }

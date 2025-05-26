@@ -22,7 +22,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User implements UserDetails {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,6 +40,12 @@ public class User implements UserDetails {
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
+
+    @Size(max = 50, message = "First name must not exceed 50 characters")
+    private String firstName;
+
+    @Size(max = 50, message = "Last name must not exceed 50 characters")
+    private String lastName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

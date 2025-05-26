@@ -31,4 +31,24 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, String
 
     // Count total number of accounts for a customer
     long countByCustomer(Customer customer);
+
+    // Admin-specific queries for account management
+
+    //Sum all account balances
+    @Query("SELECT SUM(ba.balance) FROM BankAccount ba")
+    Double sumAllBalances();
+
+    //Count accounts by status
+    long countByStatus(AccountStatus status);
+
+    //Find accounts with balance in range
+    @Query("SELECT ba FROM BankAccount ba WHERE ba.balance BETWEEN :minBalance AND :maxBalance")
+    List<BankAccount> findAccountsWithBalanceInRange(@Param("minBalance") double minBalance,
+                                                    @Param("maxBalance") double maxBalance);
+
+    //Find accounts with no recent activity (dormant accounts)
+    @Query("SELECT ba FROM BankAccount ba WHERE ba.id NOT IN " +
+           "(SELECT DISTINCT ao.bankAccount.id FROM AccountOperation ao " +
+           "WHERE ao.operationDate >= :cutoffDate)")
+    List<BankAccount> findDormantAccounts(@Param("cutoffDate") java.util.Date cutoffDate);
 }
