@@ -2,6 +2,7 @@ package com.bellagnech.dig_bank.services;
 
 import com.bellagnech.dig_bank.dtos.AccountHistoryDTO;
 import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
+import com.bellagnech.dig_bank.dtos.AccountSelectionDTO;
 import com.bellagnech.dig_bank.dtos.BankAccountDTO;
 import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
 import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
@@ -81,4 +82,11 @@ public interface BankAccountService {
 
     // Get the account history for a specific account with pagination
     AccountHistoryDTO getAccountHistory(String accountId, int page, int size) throws BankAccountNotFoundException;
+
+    // Account Selection for Dropdowns
+    // Get all accounts with customer usernames for dropdown selection
+    List<AccountSelectionDTO> getAccountsForSelection();
+
+    // Get active accounts with customer usernames for dropdown selection
+    List<AccountSelectionDTO> getActiveAccountsForSelection();
 }

@@ -14,6 +14,7 @@ import com.bellagnech.dig_bank.dtos.CustomerDTO;
 import com.bellagnech.dig_bank.mappers.BankAccountMapperImpl;
 import com.bellagnech.dig_bank.dtos.AccountHistoryDTO;
 import com.bellagnech.dig_bank.dtos.AccountOperationDTO;
+import com.bellagnech.dig_bank.dtos.AccountSelectionDTO;
 import com.bellagnech.dig_bank.dtos.BankAccountDTO;
 import com.bellagnech.dig_bank.dtos.CurrentBankAccountDTO;
 import com.bellagnech.dig_bank.dtos.SavingBankAccountDTO;
@@ -334,5 +335,37 @@ public class BankAccountServiceImpl implements BankAccountService {
         historyDTO.setTotalPages(operationsPage.getTotalPages());
 
         return historyDTO;
+    }
+
+    // Account Selection for Dropdowns
+    @Override
+    public List<AccountSelectionDTO> getAccountsForSelection() {
+        log.info("Retrieving all accounts for selection dropdown");
+        return bankAccountRepository.findAll().stream()
+                .map(this::mapToAccountSelectionDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AccountSelectionDTO> getActiveAccountsForSelection() {
+        log.info("Retrieving active accounts for selection dropdown");
+        return bankAccountRepository.findByStatus(AccountStatus.ACTIVATED).stream()
+                .map(this::mapToAccountSelectionDTO)
+                .collect(Collectors.toList());
+    }
+
+    private AccountSelectionDTO mapToAccountSelectionDTO(BankAccount account) {
+        String accountType = account instanceof SavingAccount ? "SAVING" : "CURRENT";
+        String customerUsername = account.getCustomer().getUser() != null ?
+            account.getCustomer().getUser().getUsername() : "N/A";
+
+        return new AccountSelectionDTO(
+            account.getId(),
+            customerUsername,
+            account.getCustomer().getName(),
+            accountType,
+            account.getBalance(),
+            account.getStatus()
+        );
     }
 }

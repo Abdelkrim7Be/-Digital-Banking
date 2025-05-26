@@ -131,12 +131,11 @@ public class BankAccountController {
         @ApiResponse(responseCode = "400", description = "Insufficient balance")
     })
     @PostMapping("/transfer")
-    public ResponseEntity<Void> transfer(
-            @RequestParam String sourceAccountId,
-            @RequestParam String destinationAccountId,
-            @RequestParam double amount) throws BankAccountNotFoundException, BalanceNotSufficientException {
-        log.info("Transferring {} from account ID: {} to account ID: {}", amount, sourceAccountId, destinationAccountId);
-        bankAccountService.transfer(sourceAccountId, destinationAccountId, amount);
+    public ResponseEntity<Void> transfer(@RequestBody TransferRequest request)
+            throws BankAccountNotFoundException, BalanceNotSufficientException {
+        log.info("Transferring {} from account ID: {} to account ID: {}",
+            request.getAmount(), request.getSourceAccountId(), request.getDestinationAccountId());
+        bankAccountService.transfer(request.getSourceAccountId(), request.getDestinationAccountId(), request.getAmount());
         return ResponseEntity.ok().build();
     }
 
@@ -189,5 +188,23 @@ public class BankAccountController {
         log.info("Updating status of account ID: {} to {}", accountId, status);
         bankAccountService.updateAccountStatus(accountId, status);
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Get accounts for selection", description = "Retrieves all accounts with customer usernames for dropdown selection")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved accounts for selection")
+    @GetMapping("/selection")
+    public ResponseEntity<List<AccountSelectionDTO>> getAccountsForSelection() {
+        log.info("Retrieving all accounts for selection dropdown");
+        List<AccountSelectionDTO> accounts = bankAccountService.getAccountsForSelection();
+        return ResponseEntity.ok(accounts);
+    }
+
+    @Operation(summary = "Get active accounts for selection", description = "Retrieves active accounts with customer usernames for dropdown selection")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved active accounts for selection")
+    @GetMapping("/selection/active")
+    public ResponseEntity<List<AccountSelectionDTO>> getActiveAccountsForSelection() {
+        log.info("Retrieving active accounts for selection dropdown");
+        List<AccountSelectionDTO> accounts = bankAccountService.getActiveAccountsForSelection();
+        return ResponseEntity.ok(accounts);
     }
 }

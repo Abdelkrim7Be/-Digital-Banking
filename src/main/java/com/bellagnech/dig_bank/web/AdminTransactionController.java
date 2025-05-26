@@ -284,6 +284,14 @@ public class AdminTransactionController {
                 customerInfo.put("id", customer.getId());
                 customerInfo.put("name", customer.getName());
                 customerInfo.put("email", customer.getEmail());
+
+                // Add username from associated User entity
+                if (customer.getUser() != null) {
+                    customerInfo.put("username", customer.getUser().getUsername());
+                } else {
+                    customerInfo.put("username", "N/A");
+                }
+
                 response.put("customer", customerInfo);
             }
         }

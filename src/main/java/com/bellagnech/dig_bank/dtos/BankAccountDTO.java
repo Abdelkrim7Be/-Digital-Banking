@@ -13,4 +13,6 @@ public abstract class BankAccountDTO {
     private AccountStatus status;
     private CustomerDTO customerDTO;
     private String type;
+    private String customerUsername; // Added for dropdown selection
+    private String customerName; // Added for better display
 }
