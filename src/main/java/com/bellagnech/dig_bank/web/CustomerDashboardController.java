@@ -53,7 +53,11 @@ public class CustomerDashboardController {
         log.info("Customer dashboard requested");
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            log.info("Dashboard - Authentication: {}", authentication);
+            log.info("Dashboard - Principal: {}", authentication.getPrincipal());
+            log.info("Dashboard - Authorities: {}", authentication.getAuthorities());
             String username = authentication.getName();
+            log.info("Dashboard - Username: {}", username);
 
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));

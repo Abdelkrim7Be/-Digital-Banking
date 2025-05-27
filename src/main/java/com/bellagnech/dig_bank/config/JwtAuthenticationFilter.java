@@ -61,10 +61,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             jwt = authHeader.substring(7);
             username = jwtService.extractUsername(jwt);
-            log.debug("Extracted username from JWT: {}", username);
+            log.info("JWT Filter - Path: {}, Username: {}, Token length: {}", path, username, jwt.length());
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                log.info("JWT Filter - User found: {}, Authorities: {}", username, userDetails.getAuthorities());
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -76,9 +77,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new WebAuthenticationDetailsSource().buildDetails(request)
                     );
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.debug("Successfully authenticated user: {}", username);
+                    log.info("JWT Filter - Successfully authenticated user: {} with authorities: {}", username, userDetails.getAuthorities());
                 } else {
-                    log.warn("Invalid JWT token for user: {}", username);
+                    log.warn("JWT Filter - Invalid JWT token for user: {}", username);
                 }
             }
         } catch (Exception e) {
