@@ -78,6 +78,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     log.info("JWT Filter - Successfully authenticated user: {} with authorities: {}", username, userDetails.getAuthorities());
+
+                    // Log the current security context for debugging
+                    log.info("JWT Filter - Security context set. Current authentication: {}",
+                        SecurityContextHolder.getContext().getAuthentication());
+                    log.info("JWT Filter - Current principal: {}",
+                        SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+                    log.info("JWT Filter - Current authorities: {}",
+                        SecurityContextHolder.getContext().getAuthentication().getAuthorities());
                 } else {
                     log.warn("JWT Filter - Invalid JWT token for user: {}", username);
                 }
