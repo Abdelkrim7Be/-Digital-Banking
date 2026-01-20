@@ -22,6 +22,13 @@
 
 	<modules>
 		<module>monolith</module>
+		<module>service-discovery</module>
+		<module>config-server</module>
+		<module>api-gateway</module>
+		<module>auth-service</module>
+		<module>customer-service</module>
+		<module>account-service</module>
+		<module>transaction-service</module>
 	</modules>
 
 	<dependencyManagement>
