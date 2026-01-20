@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  discovery-service:
+    build: ./microservices/discovery-service
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  config-service:
+    build: ./microservices/config-service
+    container_name: config-service
+    ports:
+      - "8888:8888"
+    networks:
+      - microservices-network
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+
+  gateway-service:
+    build: ./microservices/gateway-service
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    networks:
+      - microservices-network
+    depends_on:
+      - discovery-service
+      - config-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+
+  customer-service:
+    build: ./microservices/customer-service
+    container_name: customer-service
+    ports:
+      - "8081:8081"
+    networks:
+      - microservices-network
+    depends_on:
+      - discovery-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+
+  account-service:
+    build: ./microservices/account-service
+    container_name: account-service
+    ports:
+      - "8082:8082"
+    networks:
+      - microservices-network
+    depends_on:
+      - discovery-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+
+  transaction-service:
+    build: ./microservices/transaction-service
+    container_name: transaction-service
+    ports:
+      - "8083:8083"
+    networks:
+      - microservices-network
+    depends_on:
+      - discovery-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+
+  frontend:
+    build: ./frontend-angular
+    container_name: digital-banking-frontend
+    ports:
+      - "4200:80"
+    networks:
+      - microservices-network
+    depends_on:
+      - gateway-service
+
+networks:
+  microservices-network:
+    driver: bridge
+
