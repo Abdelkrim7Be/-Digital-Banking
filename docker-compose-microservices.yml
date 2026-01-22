@@ -92,6 +92,22 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
 
+  notification-service:
+    build: ./microservices/notification-service
+    container_name: notification-service
+    ports:
+      - "8085:8085"
+    networks:
+      - microservices-network
+    depends_on:
+      - discovery-service
+      - zipkin
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+
   zipkin:
     image: openzipkin/zipkin:latest
     container_name: zipkin

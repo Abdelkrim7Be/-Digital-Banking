@@ -58,6 +58,15 @@ public class GatewayConfig {
                 )
                 .uri("lb://reporting-service")
             )
+            // Notification routes - JWT required + rate limited
+            .route("notification-service", r -> r
+                .path("/api/notifications/**")
+                .filters(f -> f
+                    .filter(rateLimitingFilter.apply(new RateLimitingFilter.Config()))
+                    .filter(jwtFilter.apply(new JwtAuthenticationFilter.Config()))
+                )
+                .uri("lb://notification-service")
+            )
             .build();
     }
 }
