@@ -112,5 +112,18 @@ public class AccountController {
             "status", account.getStatus()
         ));
     }
+
+    @PatchMapping("/{id}/balance")
+    public ResponseEntity<Void> updateBalance(
+            @PathVariable String id,
+            @RequestBody Map<String, Double> balanceUpdate) throws BankAccountNotFoundException {
+        log.info("Updating balance for account ID: {}", id);
+        Double newBalance = balanceUpdate.get("balance");
+        if (newBalance != null) {
+            accountService.updateBalance(id, newBalance);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.badRequest().build();
+    }
 }
 

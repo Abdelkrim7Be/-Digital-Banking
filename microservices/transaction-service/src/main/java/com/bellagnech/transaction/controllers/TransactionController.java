@@ -1,0 +1,69 @@
+package com.bellagnech.transaction.controllers;
+
+import com.bellagnech.transaction.dtos.AccountOperationDTO;
+import com.bellagnech.transaction.dtos.TransactionRequest;
+import com.bellagnech.transaction.dtos.TransferRequest;
+import com.bellagnech.transaction.exceptions.AccountNotFoundException;
+import com.bellagnech.transaction.exceptions.BalanceNotSufficientException;
+import com.bellagnech.transaction.services.TransactionService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/transactions")
+@RequiredArgsConstructor
+@Slf4j
+public class TransactionController {
+
+    private final TransactionService transactionService;
+
+    @PostMapping("/credit")
+    public ResponseEntity<Void> credit(@Valid @RequestBody TransactionRequest request) 
+            throws AccountNotFoundException {
+        log.info("Credit request for account {}: amount {}", request.getAccountId(), request.getAmount());
+        transactionService.credit(request.getAccountId(), request.getAmount(), request.getDescription());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/debit")
+    public ResponseEntity<Void> debit(@Valid @RequestBody TransactionRequest request) 
+            throws AccountNotFoundException, BalanceNotSufficientException {
+        log.info("Debit request for account {}: amount {}", request.getAccountId(), request.getAmount());
+        transactionService.debit(request.getAccountId(), request.getAmount(), request.getDescription());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/transfer")
+    public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequest request)
+            throws AccountNotFoundException, BalanceNotSufficientException {
+        log.info("Transfer request: {} from {} to {}", 
+                request.getAmount(), request.getSourceAccountId(), request.getDestinationAccountId());
+        transactionService.transfer(
+                request.getSourceAccountId(), 
+                request.getDestinationAccountId(), 
+                request.getAmount());
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/account/{accountId}")
+    public ResponseEntity<List<AccountOperationDTO>> getAccountTransactions(@PathVariable String accountId) {
+        log.info("Retrieving transactions for account {}", accountId);
+        return ResponseEntity.ok(transactionService.getAccountHistory(accountId));
+    }
+
+    @GetMapping("/account/{accountId}/history")
+    public ResponseEntity<Page<AccountOperationDTO>> getAccountHistoryPaginated(
+            @PathVariable String accountId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        log.info("Retrieving paginated transactions for account {} (page: {}, size: {})", accountId, page, size);
+        return ResponseEntity.ok(transactionService.getAccountHistoryPaginated(accountId, page, size));
+    }
+}
+

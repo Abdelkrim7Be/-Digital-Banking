@@ -1,4 +1,4 @@
-to me the contalapackage com.bellagnech.transaction;
+package com.bellagnech.transaction;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -13,4 +13,3 @@ public class TransactionServiceApplication {
         SpringApplication.run(TransactionServiceApplication.class, args);
     }
 }
-
