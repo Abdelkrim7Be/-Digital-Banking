@@ -49,6 +49,15 @@ public class GatewayConfig {
                 )
                 .uri("lb://transaction-service")
             )
+            // Reporting routes - JWT required + rate limited
+            .route("reporting-service", r -> r
+                .path("/api/reports/**")
+                .filters(f -> f
+                    .filter(rateLimitingFilter.apply(new RateLimitingFilter.Config()))
+                    .filter(jwtFilter.apply(new JwtAuthenticationFilter.Config()))
+                )
+                .uri("lb://reporting-service")
+            )
             .build();
     }
 }

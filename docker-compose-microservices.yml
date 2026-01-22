@@ -78,6 +78,20 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
 
+  reporting-service:
+    build: ./microservices/reporting-service
+    container_name: reporting-service
+    ports:
+      - "8084:8084"
+    networks:
+      - microservices-network
+    depends_on:
+      - discovery-service
+      - zipkin
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+
   zipkin:
     image: openzipkin/zipkin:latest
     container_name: zipkin
