@@ -8,7 +8,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.Map;
 
-@FeignClient(name = "account-service", fallback = AccountServiceClientFallback.class)
+@FeignClient(
+    name = "account-service", 
+    fallback = AccountServiceClientFallback.class
+)
 public interface AccountServiceClient {
     
     @GetMapping("/api/accounts/{id}")
