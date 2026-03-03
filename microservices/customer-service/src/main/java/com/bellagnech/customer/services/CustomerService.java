@@ -2,8 +2,12 @@ package com.bellagnech.customer.services;
 
 import com.bellagnech.customer.dtos.CustomerDTO;
 import com.bellagnech.customer.entities.Customer;
+import com.bellagnech.customer.entities.User;
+import com.bellagnech.customer.events.CustomerCreatedEvent;
 import com.bellagnech.customer.exceptions.CustomerNotFoundException;
+import com.bellagnech.customer.messaging.CustomerEventProducer;
 import com.bellagnech.customer.repositories.CustomerRepository;
+import com.bellagnech.customer.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,15 +25,19 @@ import java.util.stream.Collectors;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
+    private final CustomerEventProducer eventProducer;
 
     @Transactional
     public CustomerDTO saveCustomer(CustomerDTO customerDTO) {
         log.info("Saving customer: {}", customerDTO.getName());
         Customer customer = toEntity(customerDTO);
         Customer saved = customerRepository.save(customer);
+        publishCustomerCreated(saved, null);
         return toDTO(saved);
     }
 
+    @Transactional(readOnly = true)
     public List<CustomerDTO> listCustomersDTO() {
         log.info("Retrieving all customers");
         return customerRepository.findAll().stream()
@@ -37,6 +45,7 @@ public class CustomerService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public CustomerDTO getCustomer(Long customerId) throws CustomerNotFoundException {
         log.info("Retrieving customer with ID: {}", customerId);
         Customer customer = customerRepository.findById(customerId)
@@ -68,17 +77,46 @@ public class CustomerService {
         customerRepository.deleteById(customerId);
     }
 
+    @Transactional(readOnly = true)
     public Page<CustomerDTO> getCustomersPageable(int page, int size) {
         log.info("Retrieving customers page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
         return customerRepository.findAll(pageable).map(this::toDTO);
     }
 
+    @Transactional(readOnly = true)
     public Page<CustomerDTO> searchCustomers(String keyword, int page, int size) {
         log.info("Searching customers with keyword: {}", keyword);
         Pageable pageable = PageRequest.of(page, size);
         return customerRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(keyword, keyword, pageable)
                 .map(this::toDTO);
+    }
+
+    @Transactional
+    public CustomerDTO updateCustomerStatus(Long customerId, boolean enabled) throws CustomerNotFoundException {
+        log.info("Updating customer status for ID: {} to enabled={}", customerId, enabled);
+
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found with ID: " + customerId));
+
+        User user = customer.getUser();
+
+        if (user == null) {
+            log.warn("Customer ID {} has no linked user. Trying to resolve by email {}", customerId, customer.getEmail());
+            if (customer.getEmail() != null) {
+                user = userRepository.findByEmail(customer.getEmail()).orElse(null);
+            }
+        }
+
+        if (user != null) {
+            user.setEnabled(enabled);
+            user.setAccountNonLocked(enabled);
+            userRepository.save(user);
+        } else {
+            log.warn("No user entity found for customer ID {}. Status toggle will not affect login.", customerId);
+        }
+
+        return toDTO(customer);
     }
 
     private CustomerDTO toDTO(Customer customer) {
@@ -88,6 +126,12 @@ public class CustomerService {
         dto.setEmail(customer.getEmail());
         dto.setPhone(customer.getPhone());
         dto.setAddress(customer.getAddress());
+        boolean enabled = true;
+        User user = customer.getUser();
+        if (user != null) {
+            enabled = user.isEnabled();
+        }
+        dto.setEnabled(enabled);
         return dto;
     }
 
@@ -101,6 +145,16 @@ public class CustomerService {
         customer.setPhone(dto.getPhone());
         customer.setAddress(dto.getAddress());
         return customer;
+    }
+
+    private void publishCustomerCreated(Customer saved, String username) {
+        CustomerCreatedEvent event = CustomerCreatedEvent.builder()
+                .customerId(saved.getId())
+                .name(saved.getName())
+                .email(saved.getEmail())
+                .username(username != null ? username : (saved.getUser() != null ? saved.getUser().getUsername() : null))
+                .build();
+        eventProducer.publishCustomerCreated(event);
     }
 }
 

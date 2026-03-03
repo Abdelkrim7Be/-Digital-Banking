@@ -6,6 +6,8 @@ import com.bellagnech.customer.dtos.RegisterRequest;
 import com.bellagnech.customer.entities.Customer;
 import com.bellagnech.customer.entities.User;
 import com.bellagnech.customer.enums.Role;
+import com.bellagnech.customer.events.CustomerCreatedEvent;
+import com.bellagnech.customer.messaging.CustomerEventProducer;
 import com.bellagnech.customer.repositories.CustomerRepository;
 import com.bellagnech.customer.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
+    private final CustomerEventProducer eventProducer;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -60,7 +63,9 @@ public class AuthService {
             customer.setPhone(request.getPhone());
             customer.setAddress(request.getAddress());
             customer.setUser(savedUser);
-            customerRepository.save(customer);
+            Customer saved = customerRepository.save(customer);
+            eventProducer.publishCustomerCreated(CustomerCreatedEvent.builder()
+                    .customerId(saved.getId()).name(saved.getName()).email(saved.getEmail()).username(savedUser.getUsername()).build());
             log.info("Customer profile created for user: {}", savedUser.getUsername());
         }
 

@@ -1,30 +1,31 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { RouterLink, ActivatedRoute } from "@angular/router";
 import {
   FormsModule,
   ReactiveFormsModule,
   FormBuilder,
   FormGroup,
   Validators,
-} from '@angular/forms';
+} from "@angular/forms";
 
-import { AccountService } from '../../../shared/services/account.service';
-import { AdminAccountService } from '../../services/account.service';
-import { BankingApiService } from '../../../core/services/banking-api.service';
+import { AccountService } from "../../../shared/services/account.service";
+import { AdminAccountService } from "../../services/account.service";
+import { BankingApiService } from "../../../core/services/banking-api.service";
 import {
   Transaction,
   TransactionType,
   TransactionFilter,
   PagedResponse,
   Account,
-} from '../../../shared/models/account.model';
-import { AccountSelectionDTO } from '../../../shared/models/banking-dtos.model';
-import { LoaderComponent } from '../../../shared/components/loader/loader.component';
-import { InlineAlertComponent } from '../../../shared/components/inline-alert/inline-alert.component';
+} from "../../../shared/models/account.model";
+import { AccountSelectionDTO } from "../../../shared/models/banking-dtos.model";
+import { LoaderComponent } from "../../../shared/components/loader/loader.component";
+import { InlineAlertComponent } from "../../../shared/components/inline-alert/inline-alert.component";
+import { AdminCustomerService } from "../../services/customer.service";
 
 @Component({
-  selector: 'app-admin-transactions',
+  selector: "app-admin-transactions",
   standalone: true,
   imports: [
     CommonModule,
@@ -101,88 +102,24 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
         ></button>
       </div>
 
-      <!-- Filters -->
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Filters</h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-3">
-              <label class="form-label">Account</label>
-              <select
-                class="form-select"
-                [(ngModel)]="filter.accountId"
-                (change)="applyFilters()"
-              >
-                <option value="">All Accounts</option>
-                <option
-                  *ngFor="let account of accountsForSelection"
-                  [value]="account.accountId"
-                >
-                  {{ account.customerUsername }} -
-                  {{ account.customerName }} ({{ account.accountType }}:
-                  {{ account.balance | currency : 'USD' : 'symbol' : '1.2-2' }})
-                </option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Transaction Type</label>
-              <select
-                class="form-select"
-                [(ngModel)]="filter.type"
-                (change)="applyFilters()"
-              >
-                <option value="">All Types</option>
-                <option value="DEPOSIT">Add Money</option>
-                <option value="WITHDRAWAL">Debit</option>
-                <option value="TRANSFER">Transfer</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label">Start Date</label>
-              <input
-                type="date"
-                class="form-control"
-                [(ngModel)]="filter.startDate"
-                (change)="applyFilters()"
-              />
-            </div>
-            <div class="col-md-2">
-              <label class="form-label">End Date</label>
-              <input
-                type="date"
-                class="form-control"
-                [(ngModel)]="filter.endDate"
-                (change)="applyFilters()"
-              />
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-              <div class="d-grid gap-2 w-100">
-                <button class="btn btn-primary" (click)="applyFilters()">
-                  <i class="bi bi-search me-2"></i>Filter
-                </button>
-                <button
-                  class="btn btn-outline-secondary"
-                  (click)="clearFilters()"
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Transactions Table -->
       <div class="card">
         <div
           class="card-header d-flex justify-content-between align-items-center"
         >
           <h5 class="card-title mb-0">All Transactions</h5>
-          <span class="badge bg-primary">
-            {{ pagedResponse?.totalElements || 0 }} total
-          </span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary">
+              {{ pagedResponse?.totalElements || 0 }} total
+            </span>
+            <button
+              class="btn btn-sm btn-outline-primary"
+              (click)="applyFilters()"
+              [disabled]="loading"
+            >
+              <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            </button>
+          </div>
         </div>
         <div class="card-body p-0">
           <app-loader *ngIf="loading"></app-loader>
@@ -257,8 +194,8 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
                   >
                     {{ transaction.amount | currency }}
                   </td>
-                  <td>{{ transaction.description || 'N/A' }}</td>
-                  <td>{{ transaction.operationDate | date : 'short' }}</td>
+                  <td>{{ transaction.description || "N/A" }}</td>
+                  <td>{{ transaction.operationDate | date: "short" }}</td>
                   <td>{{ transaction.accountBalance | currency }}</td>
                 </tr>
                 <tr *ngIf="transactions.length === 0">
@@ -377,7 +314,7 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
                   <select
                     class="form-select form-select-sm"
                     style="width: auto;"
-                    [(ngModel)]="filter.size"
+                    [(ngModel)]="pageSize"
                     (change)="changePageSize()"
                   >
                     <option value="10">10</option>
@@ -462,7 +399,7 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
                     {{ account.customerUsername }} -
                     {{ account.customerName }} ({{ account.accountType }}:
                     {{
-                      account.balance | currency : 'USD' : 'symbol' : '1.2-2'
+                      account.balance | currency: "USD" : "symbol" : "1.2-2"
                     }})
                   </option>
                 </select>
@@ -579,311 +516,237 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
 })
 export class AdminTransactionsComponent implements OnInit {
   transactions: any[] = [];
+  allTransactions: any[] = [];
   pagedResponse: PagedResponse<any> | null = null;
   loading = false;
-  error = '';
-  successMessage = '';
-  errorMessage = '';
+  error = "";
+  successMessage = "";
+  errorMessage = "";
   accountsForSelection: AccountSelectionDTO[] = [];
 
+  // Client-side pagination
+  pageSize = 20;
+  currentPage = 0;
+
   // Operation modal
-  currentOperation: 'credit' | 'debit' = 'credit';
+  currentOperation: "credit" | "debit" = "credit";
   operationLoading = false;
   operationForm: FormGroup;
   showModal = false;
 
   filter: TransactionFilter = {
     page: 0,
-    size: 20,
-    sortBy: 'operationDate',
-    sortDirection: 'desc' as 'desc',
+    size: 500,
+    sortBy: "operationDate",
+    sortDirection: "desc" as "desc",
   };
 
   Math = Math;
+
+  private customerIdFilter: number | null = null;
+  private customerAccountIds: Set<string> | null = null;
 
   constructor(
     private accountService: AccountService,
     private adminAccountService: AdminAccountService,
     private bankingApiService: BankingApiService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private route: ActivatedRoute,
+    private adminCustomerService: AdminCustomerService,
   ) {
     this.operationForm = this.fb.group({
-      accountId: ['', [Validators.required]],
-      amount: ['', [Validators.required, Validators.min(0.01)]],
-      description: ['', [Validators.required]],
+      accountId: ["", [Validators.required]],
+      amount: ["", [Validators.required, Validators.min(0.01)]],
+      description: ["", [Validators.required]],
     });
   }
 
   ngOnInit(): void {
-    this.loadTransactions();
-    this.loadAccounts();
+    this.route.queryParamMap.subscribe((params) => {
+      const customerIdParam = params.get("customerId");
+      this.customerIdFilter = customerIdParam ? Number(customerIdParam) : null;
+      if (this.customerIdFilter != null) {
+        this.loadCustomerAccountIds(this.customerIdFilter);
+      } else {
+        this.customerAccountIds = null;
+      }
+      this.loadTransactions();
+      this.loadAccounts();
+    });
+  }
+
+  private loadCustomerAccountIds(customerId: number): void {
+    this.adminCustomerService.getCustomerAccounts(customerId).subscribe({
+      next: (accounts) => {
+        const ids =
+          accounts?.map((a: any) => String(a.id ?? a.accountId ?? "").trim()) ??
+          [];
+        this.customerAccountIds = new Set(ids.filter((id) => !!id));
+        this.applyFilters();
+      },
+      error: (err) => {
+        console.error(
+          "AdminTransactionsComponent.loadCustomerAccountIds() - Error:",
+          err,
+        );
+        this.customerAccountIds = null;
+      },
+    });
   }
 
   loadAccounts(): void {
     this.bankingApiService.getAccountsForSelection().subscribe({
-      next: (accounts) => {
-        this.accountsForSelection = accounts;
+      next: (accounts: any[]) => {
+        this.accountsForSelection = (accounts || []).map((a) => ({
+          accountId: a.accountId ?? a.id,
+          customerUsername: a.customerDTO?.name ?? a.customerUsername ?? "",
+          customerName: a.customerDTO?.name ?? a.customerName ?? "",
+          accountType: a.type ?? a.accountType ?? "Account",
+          balance: a.balance ?? 0,
+          status: (a.status ?? "ACTIVATED") as
+            | "CREATED"
+            | "ACTIVATED"
+            | "SUSPENDED"
+            | "BLOCKED",
+        }));
       },
       error: (error) => {
-        console.error('Error loading accounts for selection:', error);
+        console.error("Error loading accounts for selection:", error);
       },
     });
   }
 
   loadTransactions(): void {
     this.loading = true;
-    this.error = '';
+    this.error = "";
 
-    console.log(
-      'AdminTransactionsComponent.loadTransactions() - Filter:',
-      this.filter
-    );
+    const fetchFilter: TransactionFilter = {
+      page: 0,
+      size: 500,
+      sortBy: this.filter.sortBy || "operationDate",
+      sortDirection: (this.filter.sortDirection as "desc") || "desc",
+    };
 
-    this.accountService.getTransactions(this.filter).subscribe({
+    this.accountService.getTransactions(fetchFilter).subscribe({
       next: (response) => {
-        console.log(
-          'AdminTransactionsComponent.loadTransactions() - Success:',
-          response
-        );
-        this.pagedResponse = response;
-        this.transactions = response.content;
+        this.allTransactions = response.content ?? [];
+        this.applyFilters();
         this.loading = false;
       },
-      error: (error) => {
+      error: (err) => {
         console.error(
-          'AdminTransactionsComponent.loadTransactions() - Error:',
-          error
+          "AdminTransactionsComponent.loadTransactions() - Error:",
+          err,
         );
-        console.error('Error details:', {
-          status: error.status,
-          statusText: error.statusText,
-          url: error.url,
-          error: error.error,
-        });
-
-        let errorMessage = 'Failed to load transactions. Please try again.';
-
-        if (error.status === 500) {
-          errorMessage =
-            'Server error while loading transactions. This may be due to invalid filter parameters or backend issues.';
-
-          // Try automatic fallback for 500 errors
-          console.log(
-            'AdminTransactionsComponent - Attempting automatic fallback due to 500 error'
-          );
-          this.tryFallbackWithoutProblematicFilters();
-          return; // Don't set error state yet, let fallback try first
-        } else if (error.status === 400) {
-          errorMessage =
-            'Invalid request parameters. Please check your filter settings.';
-        } else if (error.status === 0) {
-          errorMessage =
-            'Connection error. Please check if the server is running.';
-        }
-
-        this.error = errorMessage;
+        this.error =
+          err.status === 500
+            ? "Server error while loading transactions. Please try again."
+            : err.status === 400
+              ? "Invalid request. Please check your connection."
+              : "Failed to load transactions. Please try again.";
         this.loading = false;
       },
     });
   }
 
   applyFilters(): void {
-    this.filter.page = 0; // Reset to first page when filtering
-    this.loadTransactions();
+    this.currentPage = 0;
+    let list = [...this.allTransactions];
+
+    // If we are in a specific customer context, keep only that customer's accounts
+    if (this.customerAccountIds && this.customerAccountIds.size > 0) {
+      list = list.filter((t) =>
+        this.customerAccountIds!.has(
+          String(t.accountId ?? t.bankAccountId ?? "").trim(),
+        ),
+      );
+    }
+
+    const accountId =
+      this.filter.accountId != null && this.filter.accountId !== ""
+        ? String(this.filter.accountId).trim()
+        : "";
+    if (accountId) {
+      list = list.filter(
+        (t) => (t.accountId ?? t.bankAccountId ?? "") === accountId,
+      );
+    }
+
+    const typeFilter = (this.filter.type ?? "").toString().trim().toUpperCase();
+    if (typeFilter) {
+      list = list.filter((t) => {
+        const tType = (t.type ?? "").toString().toUpperCase();
+        if (typeFilter === "DEPOSIT")
+          return tType === "DEPOSIT" || tType === "CREDIT";
+        if (typeFilter === "WITHDRAWAL")
+          return tType === "WITHDRAWAL" || tType === "DEBIT";
+        return tType === typeFilter;
+      });
+    }
+
+    const startDate = (this.filter.startDate ?? "").toString().trim();
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      list = list.filter((t) => {
+        const d = t.operationDate ? new Date(t.operationDate) : null;
+        return d && d >= start;
+      });
+    }
+
+    const endDate = (this.filter.endDate ?? "").toString().trim();
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      list = list.filter((t) => {
+        const d = t.operationDate ? new Date(t.operationDate) : null;
+        return d && d <= end;
+      });
+    }
+
+    const totalElements = list.length;
+    const size = Number(this.pageSize) || 20;
+    const totalPages = Math.max(1, Math.ceil(totalElements / size));
+    if (this.currentPage >= totalPages)
+      this.currentPage = Math.max(0, totalPages - 1);
+    const start = this.currentPage * size;
+    this.transactions = list.slice(start, start + size);
+
+    this.pagedResponse = {
+      content: this.transactions,
+      totalElements,
+      totalPages,
+      size,
+      number: this.currentPage,
+      first: this.currentPage === 0,
+      last: this.currentPage >= totalPages - 1,
+    };
   }
 
   clearFilters(): void {
-    console.log(
-      'AdminTransactionsComponent.clearFilters() - Clearing all filters'
-    );
-    this.filter = {
-      page: 0,
-      size: 20,
-      sortBy: 'operationDate',
-      sortDirection: 'desc' as 'desc',
-    };
+    this.filter.accountId = undefined;
+    this.filter.type = undefined;
+    this.filter.startDate = undefined;
+    this.filter.endDate = undefined;
+    this.currentPage = 0;
+    this.applyFilters();
+  }
+
+  loadTransactionsWithoutFilters(): void {
+    this.error = "";
     this.loadTransactions();
   }
 
-  // Emergency fallback to load transactions without any filters
-  loadTransactionsWithoutFilters(): void {
-    console.log(
-      'AdminTransactionsComponent.loadTransactionsWithoutFilters() - Loading without filters'
-    );
-    this.loading = true;
-    this.error = '';
-
-    const basicFilter: TransactionFilter = {
-      page: 0,
-      size: 20,
-      sortBy: 'operationDate',
-      sortDirection: 'desc' as 'desc',
-    };
-
-    this.accountService.getTransactions(basicFilter).subscribe({
-      next: (response) => {
-        console.log(
-          'AdminTransactionsComponent.loadTransactionsWithoutFilters() - Success:',
-          response
-        );
-        this.pagedResponse = response;
-        this.transactions = response.content;
-        this.loading = false;
-        // Reset filter to working state
-        this.filter = basicFilter;
-      },
-      error: (error) => {
-        console.error(
-          'AdminTransactionsComponent.loadTransactionsWithoutFilters() - Error:',
-          error
-        );
-        this.error =
-          'Failed to load transactions even without filters. Please check the backend server.';
-        this.loading = false;
-      },
-    });
-  }
-
-  // Try fallback approaches when 500 error occurs
-  tryFallbackWithoutProblematicFilters(): void {
-    console.log(
-      'AdminTransactionsComponent.tryFallbackWithoutProblematicFilters() - Starting fallback sequence'
-    );
-
-    // Step 1: Try without accountId filter (most likely to cause issues)
-    if (this.filter.accountId) {
-      console.log(
-        'AdminTransactionsComponent - Fallback Step 1: Removing accountId filter'
-      );
-      const fallbackFilter1 = { ...this.filter };
-      delete fallbackFilter1.accountId;
-
-      this.accountService.getTransactions(fallbackFilter1).subscribe({
-        next: (response) => {
-          console.log('AdminTransactionsComponent - Fallback Step 1 Success');
-          this.pagedResponse = response;
-          this.transactions = response.content;
-          this.loading = false;
-          this.showFallbackWarning(
-            'Account filter was removed due to backend compatibility issues.'
-          );
-        },
-        error: () => {
-          console.log(
-            'AdminTransactionsComponent - Fallback Step 1 Failed, trying Step 2'
-          );
-          this.tryFallbackWithoutTypeFilter();
-        },
-      });
-    } else {
-      this.tryFallbackWithoutTypeFilter();
-    }
-  }
-
-  private tryFallbackWithoutTypeFilter(): void {
-    console.log(
-      'AdminTransactionsComponent - Fallback Step 2: Removing type filter'
-    );
-    const fallbackFilter2 = { ...this.filter };
-    delete fallbackFilter2.accountId;
-    delete fallbackFilter2.type;
-
-    this.accountService.getTransactions(fallbackFilter2).subscribe({
-      next: (response) => {
-        console.log('AdminTransactionsComponent - Fallback Step 2 Success');
-        this.pagedResponse = response;
-        this.transactions = response.content;
-        this.loading = false;
-        this.showFallbackWarning(
-          'Account and type filters were removed due to backend compatibility issues.'
-        );
-      },
-      error: () => {
-        console.log(
-          'AdminTransactionsComponent - Fallback Step 2 Failed, trying Step 3'
-        );
-        this.tryFallbackWithoutDateFilters();
-      },
-    });
-  }
-
-  private tryFallbackWithoutDateFilters(): void {
-    console.log(
-      'AdminTransactionsComponent - Fallback Step 3: Removing date filters'
-    );
-    const fallbackFilter3 = { ...this.filter };
-    delete fallbackFilter3.accountId;
-    delete fallbackFilter3.type;
-    delete fallbackFilter3.startDate;
-    delete fallbackFilter3.endDate;
-
-    this.accountService.getTransactions(fallbackFilter3).subscribe({
-      next: (response) => {
-        console.log('AdminTransactionsComponent - Fallback Step 3 Success');
-        this.pagedResponse = response;
-        this.transactions = response.content;
-        this.loading = false;
-        this.showFallbackWarning(
-          'Multiple filters were removed due to backend compatibility issues.'
-        );
-      },
-      error: () => {
-        console.log(
-          'AdminTransactionsComponent - All fallbacks failed, using basic filter'
-        );
-        this.loadTransactionsWithoutFilters();
-      },
-    });
-  }
-
-  private showFallbackWarning(message: string): void {
-    this.successMessage = `⚠️ Partial Success: ${message} Some transactions are displayed but filters may not be fully applied.`;
-
-    // Auto-hide the warning after 10 seconds
-    setTimeout(() => {
-      this.successMessage = '';
-    }, 10000);
-  }
-
   showBackendTroubleshooting(): void {
-    const troubleshootingMessage = `🔧 Backend Troubleshooting Guide
-
-The transaction filtering is failing with a 500 server error. This typically indicates:
-
-📋 COMMON ISSUES:
-• Backend doesn't support the accountId parameter format (UUID vs numeric)
-• Transaction type values don't match backend expectations
-• Date format incompatibility
-• Missing database indexes causing timeouts
-• Backend validation errors
-
-🔍 DEBUGGING STEPS:
-1. Check backend logs for detailed error messages
-2. Verify the /api/admin/transactions endpoint exists
-3. Test the endpoint directly with Postman/curl
-4. Check if accountId should be numeric instead of UUID
-5. Verify transaction type enum values match backend
-
-📝 CURRENT REQUEST:
-URL: ${window.location.origin}/api/admin/transactions
-Parameters: ${JSON.stringify(this.filter, null, 2)}
-
-🛠️ BACKEND FIXES NEEDED:
-• Ensure AdminTransactionController handles UUID accountIds
-• Add proper error handling and validation
-• Check database query performance
-• Verify parameter mapping in Spring Boot
-
-💡 QUICK TEST:
-Try the "Load Without Filters" button to see if basic endpoint works.`;
-
-    alert(troubleshootingMessage);
+    const msg = `Backend: ${window.location.origin}/api/admin/transactions\nFilters are now applied in the browser. If the list is empty, use "Try Loading Without Filters" to refresh data.`;
+    alert(msg);
   }
 
   goToPage(page: number): void {
-    if (page >= 0 && page < (this.pagedResponse?.totalPages || 0)) {
-      this.filter.page = page;
-      this.loadTransactions();
+    const totalPages = this.pagedResponse?.totalPages ?? 0;
+    if (page >= 0 && page < totalPages) {
+      this.currentPage = page;
+      this.applyFilters();
     }
   }
 
@@ -916,7 +779,7 @@ Try the "Load Without Filters" button to see if basic endpoint works.`;
       visiblePages.push(1);
 
       if (currentPage > 4) {
-        visiblePages.push('...');
+        visiblePages.push("...");
       }
 
       // Show pages around current page
@@ -928,7 +791,7 @@ Try the "Load Without Filters" button to see if basic endpoint works.`;
       }
 
       if (currentPage < totalPages - 3) {
-        visiblePages.push('...');
+        visiblePages.push("...");
       }
 
       // Always show last page
@@ -941,15 +804,15 @@ Try the "Load Without Filters" button to see if basic endpoint works.`;
   }
 
   changePageSize(): void {
-    this.filter.page = 0; // Reset to first page when changing page size
-    this.loadTransactions();
+    this.currentPage = 0;
+    this.applyFilters();
   }
 
   jumpToPage(event: any): void {
     const target = event.target || event.currentTarget;
     const pageNumber = parseInt(
       target.value || target.previousElementSibling?.value,
-      10
+      10,
     );
 
     if (
@@ -979,42 +842,42 @@ Try the "Load Without Filters" button to see if basic endpoint works.`;
   }
 
   // Banking Operations
-  openOperationModal(operation: 'credit' | 'debit'): void {
+  openOperationModal(operation: "credit" | "debit"): void {
     this.currentOperation = operation;
     this.operationForm.reset();
-    this.errorMessage = '';
-    this.successMessage = '';
+    this.errorMessage = "";
+    this.successMessage = "";
     this.showModal = true;
   }
 
   closeModal(): void {
     this.showModal = false;
     this.operationForm.reset();
-    this.errorMessage = '';
+    this.errorMessage = "";
   }
 
   performOperation(): void {
     if (this.operationForm.invalid) return;
 
     this.operationLoading = true;
-    this.errorMessage = '';
+    this.errorMessage = "";
 
     const { accountId, amount, description } = this.operationForm.value;
 
     let operation$;
     switch (this.currentOperation) {
-      case 'credit':
+      case "credit":
         operation$ = this.bankingApiService.credit(
           accountId,
           amount,
-          description
+          description,
         );
         break;
-      case 'debit':
+      case "debit":
         operation$ = this.bankingApiService.debit(
           accountId,
           amount,
-          description
+          description,
         );
         break;
     }
@@ -1035,35 +898,36 @@ Try the "Load Without Filters" button to see if basic endpoint works.`;
         this.errorMessage =
           error.error?.message ||
           `${this.getOperationTitle()} failed. Please try again.`;
-        console.error('Operation error:', error);
+        console.error("Operation error:", error);
       },
     });
   }
 
   getOperationTitle(): string {
     switch (this.currentOperation) {
-      case 'credit':
-        return 'Credit Account';
-      case 'debit':
-        return 'Debit Account';
+      case "credit":
+        return "Credit Account";
+      case "debit":
+        return "Debit Account";
       default:
-        return 'Banking Operation';
+        return "Banking Operation";
     }
   }
 
   getOperationButtonClass(): string {
     switch (this.currentOperation) {
-      case 'credit':
-        return 'btn-success';
-      case 'debit':
-        return 'btn-warning';
+      case "credit":
+        return "btn-success";
+      case "debit":
+        return "btn-warning";
       default:
-        return 'btn-primary';
+        return "btn-primary";
     }
   }
 
   // Helper methods for display
   getCustomerName(transaction: any): string {
+    if (transaction.customerName) return transaction.customerName;
     if (transaction.customer && transaction.customer.username) {
       return transaction.customer.username;
     }
@@ -1073,12 +937,12 @@ Try the "Load Without Filters" button to see if basic endpoint works.`;
     if (transaction.performedBy) {
       return transaction.performedBy;
     }
-    return 'Unknown Customer';
+    return "Unknown Customer";
   }
 
   getAccountDisplayName(accountId: string): string {
     const account = this.accountsForSelection.find(
-      (acc) => acc.accountId === accountId
+      (acc) => acc.accountId === accountId,
     );
     if (account) {
       return `${account.customerUsername} - ${account.customerName} (${account.accountType})`;
@@ -1088,31 +952,31 @@ Try the "Load Without Filters" button to see if basic endpoint works.`;
 
   getTransactionTypeBadge(type: string): string {
     switch (type?.toUpperCase()) {
-      case 'DEPOSIT':
-      case 'CREDIT':
-        return 'bg-success';
-      case 'WITHDRAWAL':
-      case 'DEBIT':
-        return 'bg-danger';
-      case 'TRANSFER':
-        return 'bg-primary';
+      case "DEPOSIT":
+      case "CREDIT":
+        return "bg-success";
+      case "WITHDRAWAL":
+      case "DEBIT":
+        return "bg-danger";
+      case "TRANSFER":
+        return "bg-primary";
       default:
-        return 'bg-secondary';
+        return "bg-secondary";
     }
   }
 
   getAmountClass(type: string): string {
     switch (type?.toUpperCase()) {
-      case 'DEPOSIT':
-      case 'CREDIT':
-        return 'text-success';
-      case 'WITHDRAWAL':
-      case 'DEBIT':
-        return 'text-danger';
-      case 'TRANSFER':
-        return 'text-primary';
+      case "DEPOSIT":
+      case "CREDIT":
+        return "text-success";
+      case "WITHDRAWAL":
+      case "DEBIT":
+        return "text-danger";
+      case "TRANSFER":
+        return "text-primary";
       default:
-        return '';
+        return "";
     }
   }
 }
