@@ -1,19 +1,20 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { AccountService } from '../../../shared/services/account.service';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { RouterModule } from "@angular/router";
+import { AccountService } from "../../../shared/services/account.service";
 import {
   Transaction,
   TransactionFilter,
   PagedResponse,
   TransactionType,
   TransactionStatus,
-} from '../../../shared/models/account.model';
-import { AuthService } from '../../../auth/services/auth.service';
+  BankAccount,
+} from "../../../shared/models/account.model";
+import { AuthService } from "../../../auth/services/auth.service";
 
 @Component({
-  selector: 'app-customer-transactions',
+  selector: "app-customer-transactions",
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
@@ -47,6 +48,22 @@ import { AuthService } from '../../../auth/services/auth.service';
         <div class="card-body">
           <div class="row g-3">
             <div class="col-md-3">
+              <label class="form-label">Account</label>
+              <select
+                class="form-select"
+                [(ngModel)]="filter.accountId"
+                (change)="applyFilters()"
+              >
+                <option [ngValue]="undefined">All Accounts</option>
+                <option
+                  *ngFor="let account of customerAccounts"
+                  [ngValue]="account.id"
+                >
+                  {{ account.id }}
+                </option>
+              </select>
+            </div>
+            <div class="col-md-3">
               <label class="form-label">Transaction Type</label>
               <select
                 class="form-select"
@@ -76,26 +93,6 @@ import { AuthService } from '../../../auth/services/auth.service';
                 [(ngModel)]="filter.endDate"
                 (change)="applyFilters()"
               />
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Amount Range</label>
-              <div class="input-group">
-                <input
-                  type="number"
-                  class="form-control"
-                  placeholder="Min"
-                  [(ngModel)]="filter.minAmount"
-                  (change)="applyFilters()"
-                />
-                <span class="input-group-text">-</span>
-                <input
-                  type="number"
-                  class="form-control"
-                  placeholder="Max"
-                  [(ngModel)]="filter.maxAmount"
-                  (change)="applyFilters()"
-                />
-              </div>
             </div>
           </div>
           <div class="row mt-3">
@@ -200,10 +197,10 @@ import { AuthService } from '../../../auth/services/auth.service';
                 <tr *ngFor="let transaction of transactions">
                   <td>
                     <div class="fw-semibold">
-                      {{ transaction.operationDate | date : 'shortDate' }}
+                      {{ transaction.operationDate | date: "shortDate" }}
                     </div>
                     <small class="text-muted">{{
-                      transaction.operationDate | date : 'shortTime'
+                      transaction.operationDate | date: "shortTime"
                     }}</small>
                   </td>
                   <td>
@@ -458,88 +455,43 @@ export class CustomerTransactionsComponent implements OnInit {
   pagedResponse: PagedResponse<Transaction> | null = null;
   loading = true;
   error: string | null = null;
-  successMessage = '';
+  successMessage = "";
+  customerAccounts: BankAccount[] = [];
 
   filter: TransactionFilter = {
     page: 0,
     size: 20,
-    sortBy: 'operationDate',
-    sortDirection: 'desc' as 'desc',
+    sortBy: "operationDate",
+    sortDirection: "desc" as "desc",
   };
 
   constructor(
     private accountService: AccountService,
-    private authService: AuthService
+    private authService: AuthService,
   ) {}
 
   ngOnInit(): void {
     this.loadTransactions();
+    this.loadCustomerAccounts();
   }
 
   loadTransactions(): void {
     this.loading = true;
     this.error = null;
-
-    console.log(
-      '=== CustomerTransactionsComponent.loadTransactions() START ==='
-    );
-    console.log('Filter:', this.filter);
-    console.log('Current user:', this.authService.getCurrentUser());
-    console.log('Token available:', !!this.authService.getToken());
-    console.log(
-      'Token preview:',
-      this.authService.getToken()?.substring(0, 20) + '...'
-    );
-
-    // Try the customer-specific method first, then fallback to general method
     this.accountService.getCustomerTransactions(this.filter).subscribe({
       next: (response) => {
-        console.log('✅ CustomerTransactions SUCCESS:', response);
-        console.log('Response type:', typeof response);
-        console.log('Response content:', response.content);
-        console.log('Content length:', response.content?.length);
-        console.log('Total elements:', response.totalElements);
-
         this.pagedResponse = response;
-        this.transactions = response.content || []; // Ensure it's always an array
+        this.transactions = response.content || [];
         this.loading = false;
-
-        console.log('Final transactions array:', this.transactions);
-        console.log('Final transactions length:', this.transactions.length);
-        console.log(
-          '=== CustomerTransactionsComponent.loadTransactions() SUCCESS END ==='
-        );
       },
       error: (error) => {
-        console.error('❌ CustomerTransactions FAILED:', error);
-        console.error('Error status:', error.status);
-        console.error('Error message:', error.message);
-        console.error('Error URL:', error.url);
-        console.log('🔄 Trying general transactions method as fallback...');
-
-        // Fallback to the general getTransactions method
         this.accountService.getTransactions(this.filter).subscribe({
           next: (response) => {
-            console.log('✅ General Transactions SUCCESS:', response);
-            console.log('Fallback response content:', response.content);
-            console.log('Fallback content length:', response.content?.length);
-
             this.pagedResponse = response;
             this.transactions = response.content || [];
             this.loading = false;
-
-            console.log('Final transactions from fallback:', this.transactions);
-            console.log(
-              '=== CustomerTransactionsComponent.loadTransactions() FALLBACK SUCCESS END ==='
-            );
           },
-          error: (generalError) => {
-            console.error('❌ ALL TRANSACTION METHODS FAILED:');
-            console.error('Customer method error:', error);
-            console.error('General method error:', generalError);
-
-            // Load demo data as last resort
-            console.log('🎭 Loading demo data as final fallback...');
+          error: () => {
             this.loadDemoTransactions();
           },
         });
@@ -556,15 +508,15 @@ export class CustomerTransactionsComponent implements OnInit {
     this.filter = {
       page: 0,
       size: 20,
-      sortBy: 'operationDate',
-      sortDirection: 'desc' as 'desc',
+      sortBy: "operationDate",
+      sortDirection: "desc" as "desc",
     };
     this.loadTransactions();
   }
 
   toggleSortDirection(): void {
     this.filter.sortDirection =
-      this.filter.sortDirection === 'asc' ? 'desc' : 'asc';
+      this.filter.sortDirection === "asc" ? "desc" : "asc";
     this.applyFilters();
   }
 
@@ -604,7 +556,7 @@ export class CustomerTransactionsComponent implements OnInit {
       visiblePages.push(1);
 
       if (currentPage > 4) {
-        visiblePages.push('...');
+        visiblePages.push("...");
       }
 
       // Show pages around current page
@@ -616,7 +568,7 @@ export class CustomerTransactionsComponent implements OnInit {
       }
 
       if (currentPage < totalPages - 3) {
-        visiblePages.push('...');
+        visiblePages.push("...");
       }
 
       // Always show last page
@@ -637,7 +589,7 @@ export class CustomerTransactionsComponent implements OnInit {
     const target = event.target || event.currentTarget;
     const pageNumber = parseInt(
       target.value || target.previousElementSibling?.value,
-      10
+      10,
     );
 
     if (
@@ -651,61 +603,61 @@ export class CustomerTransactionsComponent implements OnInit {
 
   exportTransactions(): void {
     // Placeholder for export functionality
-    this.successMessage = 'Export functionality will be implemented soon.';
+    this.successMessage = "Export functionality will be implemented soon.";
     setTimeout(() => {
-      this.successMessage = '';
+      this.successMessage = "";
     }, 3000);
   }
 
   viewTransactionDetails(transaction: Transaction): void {
     // Placeholder for transaction details modal
     alert(
-      `Transaction Details:\n\nID: ${transaction.id}\nType: ${transaction.type}\nAmount: ${transaction.amount}\nDate: ${transaction.operationDate}\nStatus: ${transaction.status}`
+      `Transaction Details:\n\nID: ${transaction.id}\nType: ${transaction.type}\nAmount: ${transaction.amount}\nDate: ${transaction.operationDate}\nStatus: ${transaction.status}`,
     );
   }
 
   getTransactionTypeBadge(type: string): string {
     const badges = {
-      DEPOSIT: 'bg-success',
-      WITHDRAWAL: 'bg-warning',
-      TRANSFER: 'bg-primary',
+      DEPOSIT: "bg-success",
+      WITHDRAWAL: "bg-warning",
+      TRANSFER: "bg-primary",
     };
-    return badges[type as keyof typeof badges] || 'bg-secondary';
+    return badges[type as keyof typeof badges] || "bg-secondary";
   }
 
   getTransactionTypeIcon(type: string): string {
     const icons = {
-      DEPOSIT: 'bi-arrow-down-circle',
-      WITHDRAWAL: 'bi-arrow-up-circle',
-      TRANSFER: 'bi-arrow-left-right',
+      DEPOSIT: "bi-arrow-down-circle",
+      WITHDRAWAL: "bi-arrow-up-circle",
+      TRANSFER: "bi-arrow-left-right",
     };
-    return icons[type as keyof typeof icons] || 'bi-circle';
+    return icons[type as keyof typeof icons] || "bi-circle";
   }
 
   getTransactionDescription(type: string): string {
     const descriptions = {
-      DEPOSIT: 'Money Added',
-      WITHDRAWAL: 'Money Withdrawn',
-      TRANSFER: 'Money Transferred',
+      DEPOSIT: "Money Added",
+      WITHDRAWAL: "Money Withdrawn",
+      TRANSFER: "Money Transferred",
     };
-    return descriptions[type as keyof typeof descriptions] || 'Transaction';
+    return descriptions[type as keyof typeof descriptions] || "Transaction";
   }
 
   getAmountClass(type: string): string {
-    return type === 'WITHDRAWAL' ? 'text-danger' : 'text-success';
+    return type === "WITHDRAWAL" ? "text-danger" : "text-success";
   }
 
   getAmountPrefix(type: string): string {
-    return type === 'WITHDRAWAL' ? '-' : '+';
+    return type === "WITHDRAWAL" ? "-" : "+";
   }
 
   getTransactionStatusBadge(status: string): string {
     const badges = {
-      COMPLETED: 'bg-success',
-      PENDING: 'bg-warning',
-      FAILED: 'bg-danger',
+      COMPLETED: "bg-success",
+      PENDING: "bg-warning",
+      FAILED: "bg-danger",
     };
-    return badges[status as keyof typeof badges] || 'bg-secondary';
+    return badges[status as keyof typeof badges] || "bg-secondary";
   }
 
   getAccountIdSuffix(accountId: string | number): string {
@@ -713,48 +665,59 @@ export class CustomerTransactionsComponent implements OnInit {
     return accountIdStr.length >= 4 ? accountIdStr.slice(-4) : accountIdStr;
   }
 
+  private loadCustomerAccounts(): void {
+    this.accountService.getCustomerAccounts().subscribe({
+      next: (accounts) => {
+        this.customerAccounts = accounts || [];
+      },
+      error: (error) => {
+        console.error("Failed to load customer accounts for filters:", error);
+      },
+    });
+  }
+
   private loadDemoTransactions(): void {
-    console.log('Loading demo transaction data...');
+    console.log("Loading demo transaction data...");
 
     // Create demo transactions
     const demoTransactions: Transaction[] = [
       {
         id: 1,
-        accountId: 'demo-account-1',
+        accountId: "ACC-CA-001",
         type: TransactionType.DEPOSIT,
         amount: 1000,
         balance: 5000,
-        description: 'Initial Deposit',
+        description: "Initial Deposit",
         status: TransactionStatus.COMPLETED,
         operationDate: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
       },
       {
         id: 2,
-        accountId: 'demo-account-1',
+        accountId: "ACC-CA-001",
         type: TransactionType.WITHDRAWAL,
         amount: 200,
         balance: 4800,
-        description: 'ATM Withdrawal',
+        description: "ATM Withdrawal",
         status: TransactionStatus.COMPLETED,
         operationDate: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
       },
       {
         id: 3,
-        accountId: 'demo-account-1',
+        accountId: "ACC-CA-001",
         type: TransactionType.TRANSFER,
         amount: 500,
         balance: 4300,
-        description: 'Transfer to Savings',
+        description: "Transfer to Savings",
         status: TransactionStatus.COMPLETED,
         operationDate: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
       },
       {
         id: 4,
-        accountId: 'demo-account-1',
+        accountId: "ACC-CA-001",
         type: TransactionType.DEPOSIT,
         amount: 2000,
         balance: 6300,
-        description: 'Salary Deposit',
+        description: "Salary Deposit",
         status: TransactionStatus.COMPLETED,
         operationDate: new Date(Date.now() - 604800000).toISOString(), // 1 week ago
       },
@@ -772,9 +735,9 @@ export class CustomerTransactionsComponent implements OnInit {
     };
 
     this.transactions = demoTransactions;
-    this.error = 'Showing demo data - API endpoints not available';
+    this.error = "Showing demo data - API endpoints not available";
     this.loading = false;
 
-    console.log('Demo transaction data loaded:', this.transactions);
+    console.log("Demo transaction data loaded:", this.transactions);
   }
 }
