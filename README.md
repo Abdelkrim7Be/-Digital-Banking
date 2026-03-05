@@ -45,8 +45,6 @@ flowchart TB
     end
     subgraph Support["Support"]
         RS[Reporting :8084]
-        NS[Notification :8085]
-        CFG[Config :8888]
     end
     subgraph Data["Data / Messaging"]
         H2[(H2 DBs)]
@@ -58,17 +56,14 @@ flowchart TB
     GW --> AS
     GW --> TS
     GW --> RS
-    GW --> NS
     CS --> EU
     AS --> EU
     TS --> EU
     RS --> EU
-    NS --> EU
     CS --> H2
     AS --> H2
     TS --> H2
     RS --> H2
-    NS --> H2
     CS -.->|events| KF
     AS -.->|events| KF
     TS -.->|events| KF
@@ -79,16 +74,14 @@ flowchart TB
 
 ## Services
 
-| Service                  | Port | Role                                                                                                     |
-| ------------------------ | ---- | -------------------------------------------------------------------------------------------------------- |
-| **discovery-service**    | 8761 | Eureka server: registry of all microservices. Others register here and the gateway discovers instances.  |
-| **config-service**       | 8888 | Spring Cloud Config server (native). Optional central config.                                            |
-| **gateway-service**      | 8080 | API Gateway: single entry point, JWT validation, rate limiting, routes `/api/*` to the right service.    |
-| **customer-service**     | 8081 | Users, auth (login/register), customers. Produces **customer-events** to Kafka.                          |
-| **account-service**      | 8082 | Bank accounts (current/saving). Produces **account-events** and **account-balance-updates**.             |
-| **transaction-service**  | 8083 | Credit, debit, transfer; operation history. Has **TransactionEventProducer** for **transaction-events**. |
-| **reporting-service**    | 8084 | Dashboards, stats. **Consumes** all Kafka topics (customer, account, balance, transaction).              |
-| **notification-service** | 8085 | Email (SMTP) and optional SMS. No Kafka in this project.                                                 |
+| Service                 | Port | Role                                                                                                     |
+| ----------------------- | ---- | -------------------------------------------------------------------------------------------------------- |
+| **discovery-service**   | 8761 | Eureka server: registry of all microservices. Others register here and the gateway discovers instances. |
+| **gateway-service**     | 8080 | API Gateway: single entry point, JWT validation, rate limiting, routes `/api/*` to the right service.     |
+| **customer-service**    | 8081 | Users, auth (login/register), customers. Produces **customer-events** to Kafka.                          |
+| **account-service**     | 8082 | Bank accounts (current/saving). Produces **account-events** and **account-balance-updates**.             |
+| **transaction-service** | 8083 | Credit, debit, transfer; operation history. Has **TransactionEventProducer** for **transaction-events**. |
+| **reporting-service**   | 8084 | Dashboards, stats. **Consumes** all Kafka topics (customer, account, balance, transaction).             |
 
 **Flow in short:**  
 Frontend → Gateway → Eureka (resolve) → one of the services. Customer/Account/Transaction services publish events to Kafka; Reporting service subscribes and reacts (e.g. logging, future analytics).
@@ -230,16 +223,6 @@ discovery-service/
     └── resources/application.properties
 ```
 
-### config-service
-
-```
-config-service/
-├── pom.xml
-└── src/main/
-    ├── java/.../config/ConfigServiceApplication.java
-    └── resources/application.properties
-```
-
 ### gateway-service
 
 ```
@@ -335,23 +318,6 @@ reporting-service/
     └── resources/application.properties, application-kafka.properties
 ```
 
-### notification-service
-
-```
-notification-service/
-├── pom.xml
-└── src/main/
-    ├── java/.../notification/
-    │   ├── NotificationServiceApplication.java
-    │   ├── config/AsyncConfig.java
-    │   ├── controllers/NotificationController.java
-    │   ├── dtos/NotificationRequest.java
-    │   ├── entities/Notification.java
-    │   ├── repositories/NotificationRepository.java
-    │   └── services/EmailService.java, NotificationService.java, SmsService.java
-    └── resources/application.properties
-```
-
 ---
 
 ## Mermaid diagram files
@@ -377,7 +343,7 @@ You can paste the content into [Mermaid Live Editor](https://mermaid.live) or us
 ## Quick start
 
 **Without Kafka (default):**  
-Start discovery, config, gateway, then customer, account, transaction, reporting (and optionally notification). Frontend: `npm start` in `frontend/`. Use gateway base URL (e.g. `http://localhost:8080`) from the frontend.
+Start discovery, then gateway, then customer, account, transaction, reporting. Frontend: `npm start` in `frontend/`. Use gateway base URL (e.g. `http://localhost:8080`) from the frontend.
 
 **With Kafka:**
 

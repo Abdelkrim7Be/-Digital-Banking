@@ -41,10 +41,6 @@ if ! kill -0 $DISCOVERY_PID 2>/dev/null; then
 fi
 echo "Eureka up."
 
-echo "Starting config-service..."
-(cd "$PROJECT_ROOT/microservices" && mvn -q -pl config-service spring-boot:run >> "$LOG_DIR/config-service.log" 2>&1) &
-sleep 15
-
 echo "Starting gateway-service..."
 (cd "$PROJECT_ROOT/microservices" && mvn -q -pl gateway-service spring-boot:run >> "$LOG_DIR/gateway-service.log" 2>&1) &
 sleep 25
