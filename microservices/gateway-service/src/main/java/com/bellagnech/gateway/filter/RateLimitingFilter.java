@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class RateLimitingFilter extends AbstractGatewayFilterFactory<RateLimitingFilter.Config> {
 
-    private static final int DEFAULT_RATE_LIMIT = 100; // requests per minute
+    private static final int DEFAULT_RATE_LIMIT = 500; // requests per minute (increased for admin list + detail flows)
     private final Map<String, RateLimitInfo> rateLimitMap = new ConcurrentHashMap<>();
 
     public RateLimitingFilter() {

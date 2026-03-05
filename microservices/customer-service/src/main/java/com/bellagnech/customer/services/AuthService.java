@@ -2,7 +2,9 @@ package com.bellagnech.customer.services;
 
 import com.bellagnech.customer.dtos.AuthResponse;
 import com.bellagnech.customer.dtos.LoginRequest;
+import com.bellagnech.customer.dtos.ProfileUpdateRequest;
 import com.bellagnech.customer.dtos.RegisterRequest;
+import com.bellagnech.customer.dtos.UserProfileDTO;
 import com.bellagnech.customer.entities.Customer;
 import com.bellagnech.customer.entities.User;
 import com.bellagnech.customer.enums.Role;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -93,5 +96,47 @@ public class AuthService {
         log.info("User authenticated successfully: {}", user.getUsername());
         return new AuthResponse(jwtToken, user.getUsername(), user.getEmail(), user.getRole());
     }
-}
 
+    @Transactional(readOnly = true)
+    public UserProfileDTO getCurrentUserProfile(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        return mapToUserProfileDTO(user);
+    }
+
+    @Transactional
+    public UserProfileDTO updateCurrentUserProfile(String username, ProfileUpdateRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        // If email is being changed, ensure it's unique
+        if (!user.getEmail().equals(request.getEmail())
+                && userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+
+        User saved = userRepository.save(user);
+        return mapToUserProfileDTO(saved);
+    }
+
+    private UserProfileDTO mapToUserProfileDTO(User user) {
+        String status = user.isEnabled() ? "ACTIVE" : "INACTIVE";
+        return UserProfileDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole())
+                .status(status)
+                .enabled(user.isEnabled())
+                .createdAt(user.getCreatedDate() != null ? user.getCreatedDate().toInstant().toString() : null)
+                .updatedAt(user.getLastModifiedDate() != null ? user.getLastModifiedDate().toInstant().toString() : null)
+                .build();
+    }
+}

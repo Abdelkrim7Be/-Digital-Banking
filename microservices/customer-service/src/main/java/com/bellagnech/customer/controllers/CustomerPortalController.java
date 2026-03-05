@@ -15,7 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Customer portal: my accounts, dashboard, transactions. Gateway /api/customer/** → here; JWT required. */
+/** Customer portal API: /api/customer/** (JWT). */
 @RestController
 @RequestMapping("/api/customer")
 @RequiredArgsConstructor

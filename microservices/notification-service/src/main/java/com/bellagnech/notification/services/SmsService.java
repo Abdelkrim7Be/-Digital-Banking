@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+/** Stub SMS sender; enable and wire provider (e.g. Twilio) for production. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -25,18 +26,7 @@ public class SmsService {
         }
 
         try {
-            // Placeholder for SMS implementation
-            // In production, integrate with Twilio, AWS SNS, or similar service
             log.info("SMS sent to {}: {}", to, message);
-            
-            // Example Twilio integration (commented out):
-            // Twilio.init(accountSid, authToken);
-            // Message.creator(
-            //     new PhoneNumber(to),
-            //     new PhoneNumber(fromNumber),
-            //     message
-            // ).create();
-            
         } catch (Exception e) {
             log.error("Failed to send SMS to {}: {}", to, e.getMessage());
             throw new RuntimeException("Failed to send SMS", e);

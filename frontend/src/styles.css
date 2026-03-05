@@ -158,6 +158,12 @@ body {
   background-color: var(--light-gray);
   border-bottom: 2px solid var(--border-color);
   font-weight: 600;
+  padding: 0.85rem 1rem;
+}
+
+.table tbody td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
 }
 
 /* Loading Spinner */
@@ -276,7 +282,7 @@ body {
 }
 
 .main-content {
-  padding: 20px;
+  padding: 32px 32px 40px;
   min-height: calc(100vh - 120px); /* Account for header and footer */
 }
 
@@ -320,6 +326,18 @@ body {
   min-height: 100vh;
 }
 
+button.btn,
+.btn {
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.btn-lg {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+}
+
 .text-primary-custom {
   color: var(--primary-red);
 }
@@ -343,20 +361,30 @@ body {
 /* Card Enhancements */
 .card {
   border: none;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.16);
   transform: translateY(-2px);
+}
+
+.card-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.card-header {
+  padding: 0.9rem 1.5rem;
 }
 
 /* Navigation Enhancements */
 .navbar-brand {
-  font-weight: 700;
-  font-size: 1.5rem;
+  font-weight: 600;
+  font-size: 1.3rem;
 }
 
 /* Form Enhancements */

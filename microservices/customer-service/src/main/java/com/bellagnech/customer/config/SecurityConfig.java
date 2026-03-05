@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/** Stateless JWT + permit public and internal customer API. */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -36,7 +37,8 @@ public class SecurityConfig {
                         req.requestMatchers(
                                         "/api/auth/login",
                                         "/api/auth/register",
-                                        "/h2-console/**"
+                                        "/h2-console/**",
+                                        "/api/customers/**"
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/** Aggregates stats and reports from customer/account/transaction services. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -21,30 +22,47 @@ public class ReportingService {
 
     public Map<String, Object> getDashboardStats() {
         log.info("Generating dashboard statistics");
-        
-        List<CustomerServiceClient.CustomerDTO> customers = customerServiceClient.getAllCustomers();
-        List<AccountServiceClient.AccountDTO> accounts = accountServiceClient.getAllAccounts();
-        
+
+        List<CustomerServiceClient.CustomerDTO> customers = Collections.emptyList();
+        List<AccountServiceClient.AccountDTO> accounts = Collections.emptyList();
+
+        try {
+            customers = customerServiceClient.getAllCustomers();
+        } catch (Exception e) {
+            log.warn("Failed to load customers for dashboard stats: {}", e.getMessage());
+        }
+
+        try {
+            accounts = accountServiceClient.getAllAccounts();
+        } catch (Exception e) {
+            log.warn("Failed to load accounts for dashboard stats: {}", e.getMessage());
+        }
+
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalCustomers", customers.size());
         stats.put("totalAccounts", accounts.size());
-        
+
         double totalBalance = accounts.stream()
             .mapToDouble(acc -> acc.balance != null ? acc.balance : 0.0)
             .sum();
         stats.put("totalBalance", totalBalance);
         stats.put("averageBalance", accounts.isEmpty() ? 0.0 : totalBalance / accounts.size());
-        
+
         long currentAccounts = accounts.stream()
             .filter(acc -> "CurrentAccount".equals(acc.type))
             .count();
         long savingAccounts = accounts.stream()
             .filter(acc -> "SavingAccount".equals(acc.type))
             .count();
-        
+
         stats.put("currentAccounts", currentAccounts);
         stats.put("savingAccounts", savingAccounts);
-        
+        stats.putIfAbsent("totalTransactions", 0);
+        stats.putIfAbsent("activeCustomers", customers.size());
+        stats.putIfAbsent("pendingTransactions", 0);
+        stats.putIfAbsent("monthlyGrowth", 0);
+        stats.putIfAbsent("revenueGrowth", 0);
+
         return stats;
     }
 
@@ -221,6 +239,60 @@ public class ReportingService {
         report.put("summary", summary);
         
         return report;
+    }
+
+    public Map<String, Object> getTransactionsSummary() {
+        log.info("Generating simple transactions summary for admin dashboard");
+
+        Map<String, Object> summary = new HashMap<>();
+
+        try {
+            List<AccountServiceClient.AccountDTO> accounts = accountServiceClient.getAllAccounts();
+            List<TransactionServiceClient.TransactionDTO> allTransactions = new ArrayList<>();
+
+            for (AccountServiceClient.AccountDTO account : accounts) {
+                try {
+                    List<TransactionServiceClient.TransactionDTO> txs =
+                            transactionServiceClient.getAccountTransactions(account.id);
+                    allTransactions.addAll(txs);
+                } catch (Exception e) {
+                    log.warn("Failed to get transactions for account {}: {}", account.id, e.getMessage());
+                }
+            }
+
+            long depositCount = allTransactions.stream()
+                .filter(tx -> tx.type != null && "CREDIT".equalsIgnoreCase(tx.type))
+                .count();
+            long withdrawalCount = allTransactions.stream()
+                .filter(tx -> tx.type != null && "DEBIT".equalsIgnoreCase(tx.type))
+                .count();
+            long transferCount = allTransactions.stream()
+                .filter(tx -> tx.type != null && "DEBIT".equalsIgnoreCase(tx.type)
+                    && tx.description != null && tx.description.toLowerCase().startsWith("transfer to"))
+                .count();
+
+            Map<String, Long> transactionsByType = new HashMap<>();
+            transactionsByType.put("DEPOSIT", depositCount);
+            transactionsByType.put("WITHDRAWAL", withdrawalCount);
+            transactionsByType.put("TRANSFER", transferCount);
+
+            double totalVolume = allTransactions.stream()
+                    .mapToDouble(tx -> tx.amount != null ? tx.amount : 0.0)
+                    .sum();
+
+            summary.put("totalTransactions", allTransactions.size());
+            summary.put("transactionsByType", transactionsByType);
+            summary.put("totalVolume", totalVolume);
+            summary.put("pendingTransactions", 0);
+        } catch (Exception e) {
+            log.warn("Failed to generate transactions summary: {}", e.getMessage());
+            summary.putIfAbsent("totalTransactions", 0);
+            summary.putIfAbsent("transactionsByType", Collections.emptyMap());
+            summary.putIfAbsent("totalVolume", 0.0);
+            summary.putIfAbsent("pendingTransactions", 0);
+        }
+
+        return summary;
     }
 }
 

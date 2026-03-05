@@ -17,5 +17,9 @@ public class BankAccountDTO {
     private AccountStatus status;
     private Long customerId;
     private String type;
+    private String customerName;
+    private String customerEmail;
+    private Double overDraft;   // for current accounts
+    private Double interestRate; // for saving accounts
 }
 

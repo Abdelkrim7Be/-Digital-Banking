@@ -7,8 +7,16 @@ import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Gateway route and rate-limit config. */
 @Configuration
 public class GatewayConfig {
+
+    /** Higher rate limit for admin list+detail flows. */
+    private static RateLimitingFilter.Config adminHighLimitConfig() {
+        RateLimitingFilter.Config c = new RateLimitingFilter.Config();
+        c.setRateLimit(500);
+        return c;
+    }
 
     @Bean
     public RouteLocator customRouteLocator(
@@ -25,7 +33,7 @@ public class GatewayConfig {
                 .path("/api/admin/customers/*/accounts")
                 .filters(f -> f
                     .rewritePath("/api/admin/customers/(?<id>[^/]+)/accounts", "/api/accounts/customer/${id}")
-                    .filter(rateLimitingFilter.apply(new RateLimitingFilter.Config()))
+                    .filter(rateLimitingFilter.apply(adminHighLimitConfig()))
                     .filter(jwtFilter.apply(new JwtAuthenticationFilter.Config()))
                 )
                 .uri("lb://account-service")
@@ -34,7 +42,7 @@ public class GatewayConfig {
                 .path("/api/admin/customers/**")
                 .filters(f -> f
                     .rewritePath("/api/admin/customers(?<segment>.*)", "/api/customers${segment}")
-                    .filter(rateLimitingFilter.apply(new RateLimitingFilter.Config()))
+                    .filter(rateLimitingFilter.apply(adminHighLimitConfig()))
                     .filter(jwtFilter.apply(new JwtAuthenticationFilter.Config()))
                 )
                 .uri("lb://customer-service")

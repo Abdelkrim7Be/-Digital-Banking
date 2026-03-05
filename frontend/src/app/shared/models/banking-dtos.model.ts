@@ -13,7 +13,7 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
-  role: 'ADMIN' | 'CUSTOMER';
+  role: "ADMIN" | "CUSTOMER";
   name?: string;
   phone?: string;
 }
@@ -41,9 +41,9 @@ export interface BankAccountDTO {
   id: string;
   balance: number;
   createDate: Date;
-  status: 'CREATED' | 'ACTIVATED' | 'SUSPENDED' | 'BLOCKED';
+  status: "CREATED" | "ACTIVATED" | "SUSPENDED" | "BLOCKED";
   customer: CustomerDTO;
-  type: 'CURRENT' | 'SAVING';
+  type: "CURRENT" | "SAVING";
   customerUsername?: string; // Added for dropdown selection
   customerName?: string; // Added for better display
 }
@@ -61,7 +61,7 @@ export interface AccountOperationDTO {
   operationDate: Date;
   amount: number;
   description: string;
-  type: 'CREDIT' | 'DEBIT';
+  type: "CREDIT" | "DEBIT";
 }
 
 // Banking Operation Request DTOs
@@ -82,7 +82,7 @@ export interface AccountSelectionDTO {
   customerName: string;
   accountType: string;
   balance: number;
-  status: 'CREATED' | 'ACTIVATED' | 'SUSPENDED' | 'BLOCKED';
+  status: "CREATED" | "ACTIVATED" | "SUSPENDED" | "BLOCKED";
   displayText?: string; // Computed display format
 }
 
@@ -95,9 +95,10 @@ export interface TransferRequestDTO {
 }
 
 export interface TransferRequest {
+  sourceAccountId: string;
+  destinationAccountId: string;
   amount: number;
   description: string;
-  destinationAccountId: string;
 }
 
 // Dashboard DTOs
@@ -130,7 +131,7 @@ export interface PageRequest {
   page: number;
   size: number;
   sort?: string;
-  direction?: 'ASC' | 'DESC';
+  direction?: "ASC" | "DESC";
 }
 
 export interface PageResponse<T> {
@@ -155,8 +156,8 @@ export interface CustomerSearchRequest {
 
 export interface AccountSearchRequest {
   customerId?: number;
-  accountType?: 'CURRENT' | 'SAVING';
-  status?: 'CREATED' | 'ACTIVATED' | 'SUSPENDED' | 'BLOCKED';
+  accountType?: "CURRENT" | "SAVING";
+  status?: "CREATED" | "ACTIVATED" | "SUSPENDED" | "BLOCKED";
   minBalance?: number;
   maxBalance?: number;
   page?: number;
@@ -168,7 +169,7 @@ export interface UserDTO {
   id: number;
   username: string;
   email: string;
-  role: 'ADMIN' | 'CUSTOMER';
+  role: "ADMIN" | "CUSTOMER";
   enabled: boolean;
   createdDate: Date;
   lastLoginDate?: Date;
@@ -198,7 +199,7 @@ export interface TransactionHistoryRequest {
   size?: number;
   startDate?: Date;
   endDate?: Date;
-  operationType?: 'CREDIT' | 'DEBIT';
+  operationType?: "CREDIT" | "DEBIT";
 }
 
 export interface TransactionHistoryResponse {
@@ -212,9 +213,9 @@ export interface TransactionHistoryResponse {
 
 // Health Check DTO
 export interface HealthCheckResponse {
-  status: 'UP' | 'DOWN';
-  database: 'UP' | 'DOWN';
-  diskSpace: 'UP' | 'DOWN';
+  status: "UP" | "DOWN";
+  database: "UP" | "DOWN";
+  diskSpace: "UP" | "DOWN";
   timestamp: Date;
 }
 
@@ -229,7 +230,7 @@ export interface ErrorResponse {
 
 // Export DTOs
 export interface ExportRequest {
-  format: 'CSV' | 'PDF' | 'EXCEL';
+  format: "CSV" | "PDF" | "EXCEL";
   startDate?: Date;
   endDate?: Date;
   accountId?: string;
@@ -241,7 +242,7 @@ export interface NotificationDTO {
   id: number;
   title: string;
   message: string;
-  type: 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS';
+  type: "INFO" | "WARNING" | "ERROR" | "SUCCESS";
   read: boolean;
   createdDate: Date;
   userId: number;
@@ -259,7 +260,7 @@ export interface ChartDataDTO {
 }
 
 export interface AccountDistributionDTO {
-  accountType: 'CURRENT' | 'SAVING';
+  accountType: "CURRENT" | "SAVING";
   count: number;
   percentage: number;
   totalBalance: number;

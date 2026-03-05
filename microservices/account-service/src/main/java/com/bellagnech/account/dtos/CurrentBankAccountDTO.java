@@ -6,6 +6,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CurrentBankAccountDTO extends BankAccountDTO {
-    private double overDraft;
+    private Double overDraft;
 }
 

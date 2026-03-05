@@ -1,18 +1,18 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
 import {
   FormBuilder,
   FormGroup,
   Validators,
   ReactiveFormsModule,
-} from '@angular/forms';
-import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
-import { LoginRequest, UserRole } from '../../models/auth.model';
-import { BankingValidators } from '../../../shared/validators/banking-validators';
+} from "@angular/forms";
+import { Router, ActivatedRoute, RouterModule } from "@angular/router";
+import { AuthService } from "../../services/auth.service";
+import { LoginRequest, UserRole } from "../../models/auth.model";
+import { BankingValidators } from "../../../shared/validators/banking-validators";
 
 @Component({
-  selector: 'app-login',
+  selector: "app-login",
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
@@ -191,22 +191,15 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
                 <button
                   type="submit"
                   class="btn btn-primary btn-lg w-100 mb-3"
-                  [disabled]="loginForm.invalid || loading"
+                  [disabled]="loading"
                 >
                   <span
                     *ngIf="loading"
                     class="spinner-border spinner-border-sm me-2"
                   ></span>
                   <i *ngIf="!loading" class="bi bi-box-arrow-in-right me-2"></i>
-                  {{ loading ? 'Signing In...' : 'Sign In' }}
+                  {{ loading ? "Signing In..." : "Sign In" }}
                 </button>
-
-                <!-- Forgot Password Link -->
-                <div class="text-center mb-3">
-                  <a href="#" class="text-decoration-none"
-                    >Forgot your password?</a
-                  >
-                </div>
 
                 <!-- Register Link -->
                 <div class="text-center">
@@ -222,7 +215,7 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
               </form>
 
               <!-- Demo Accounts -->
-              <div class="mt-4 p-3 bg-light rounded">
+              <div class="mt-4">
                 <h6 class="text-muted mb-2">Demo Accounts:</h6>
                 <div class="row">
                   <div class="col-6">
@@ -317,21 +310,21 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
 export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
   loading = false;
-  errorMessage = '';
-  successMessage = '';
+  errorMessage = "";
+  successMessage = "";
   showPassword = false;
-  returnUrl = '';
+  returnUrl = "";
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
     this.initializeForm();
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '';
+    this.returnUrl = this.route.snapshot.queryParams["returnUrl"] || "";
 
     // Check if user is already logged in
     if (this.authService.isAuthenticated()) {
@@ -341,8 +334,8 @@ export class LoginComponent implements OnInit {
 
   initializeForm(): void {
     this.loginForm = this.fb.group({
-      username: ['', [Validators.required, BankingValidators.username()]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      username: ["", [Validators.required, BankingValidators.username()]],
+      password: ["", [Validators.required, Validators.minLength(6)]],
       rememberMe: [false],
     });
   }
@@ -354,17 +347,18 @@ export class LoginComponent implements OnInit {
     }
 
     this.loading = true;
-    this.errorMessage = '';
+    this.errorMessage = "";
 
     const loginData: LoginRequest = {
       username: this.loginForm.value.username,
       password: this.loginForm.value.password,
     };
+    const rememberMe = !!this.loginForm.value.rememberMe;
 
-    this.authService.login(loginData).subscribe({
+    this.authService.login(loginData, rememberMe).subscribe({
       next: (response) => {
         this.loading = false;
-        this.successMessage = 'Login successful! Redirecting...';
+        this.successMessage = "Login successful! Redirecting...";
         setTimeout(() => {
           this.redirectUser();
         }, 1000);
@@ -373,7 +367,7 @@ export class LoginComponent implements OnInit {
         this.loading = false;
         this.errorMessage =
           error.error?.message ||
-          'Login failed. Please check your credentials.';
+          "Login failed. Please check your credentials.";
       },
     });
   }
@@ -383,9 +377,9 @@ export class LoginComponent implements OnInit {
     if (this.returnUrl) {
       this.router.navigateByUrl(this.returnUrl);
     } else if (user?.role === UserRole.ADMIN) {
-      this.router.navigate(['/admin/dashboard']);
+      this.router.navigate(["/admin/dashboard"]);
     } else {
-      this.router.navigate(['/customer/dashboard']);
+      this.router.navigate(["/customer/dashboard"]);
     }
   }
 
@@ -395,23 +389,26 @@ export class LoginComponent implements OnInit {
 
   loginAsAdmin(): void {
     this.loginForm.patchValue({
-      username: 'admin',
-      password: 'admin123',
+      username: "admin",
+      password: "password",
     });
+    this.onSubmit();
   }
 
   loginAsCustomer(): void {
     this.loginForm.patchValue({
-      username: 'abdelkrim',
-      password: 'password123',
+      // Use a demo customer that is guaranteed to have seeded accounts
+      username: "jean.martin",
+      password: "password",
     });
+    this.onSubmit();
   }
 
   // Getter methods for form controls
   get username() {
-    return this.loginForm.get('username');
+    return this.loginForm.get("username");
   }
   get password() {
-    return this.loginForm.get('password');
+    return this.loginForm.get("password");
   }
 }

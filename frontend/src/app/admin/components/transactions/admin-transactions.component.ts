@@ -114,7 +114,7 @@ import { AdminCustomerService } from "../../services/customer.service";
             </span>
             <button
               class="btn btn-sm btn-outline-primary"
-              (click)="applyFilters()"
+              (click)="refreshTransactions()"
               [disabled]="loading"
             >
               <i class="bi bi-arrow-clockwise me-1"></i>Refresh
@@ -122,6 +122,58 @@ import { AdminCustomerService } from "../../services/customer.service";
           </div>
         </div>
         <div class="card-body p-0">
+          <!-- Search and quick filters (like accounts list) -->
+          <div class="p-3 border-bottom">
+            <div class="row g-2">
+              <div class="col-md-4">
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                  </span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Search by account or description..."
+                    [(ngModel)]="searchTerm"
+                    (input)="onSearch()"
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <select
+                  class="form-select"
+                  [(ngModel)]="selectedStatus"
+                  (change)="onFilterChange()"
+                >
+                  <option value="">All Status</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="FAILED">Failed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <select
+                  class="form-select"
+                  [(ngModel)]="selectedType"
+                  (change)="onFilterChange()"
+                >
+                  <option value="">All Types</option>
+                  <option value="DEPOSIT">Deposit / Credit</option>
+                  <option value="WITHDRAWAL">Withdrawal / Debit</option>
+                  <option value="TRANSFER">Transfer</option>
+                  <option value="PAYMENT">Payment</option>
+                  <option value="FEE">Fee</option>
+                  <option value="INTEREST">Interest</option>
+                </select>
+              </div>
+
+              <!-- Single refresh button is kept in the card header to avoid duplicates -->
+            </div>
+          </div>
+
           <app-loader *ngIf="loading"></app-loader>
           <app-inline-alert
             *ngIf="error && !loading"
@@ -158,7 +210,7 @@ import { AdminCustomerService } from "../../services/customer.service";
                   <th>Amount</th>
                   <th>Description</th>
                   <th>Date</th>
-                  <th>Balance</th>
+                  <th>Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,7 +248,13 @@ import { AdminCustomerService } from "../../services/customer.service";
                   </td>
                   <td>{{ transaction.description || "N/A" }}</td>
                   <td>{{ transaction.operationDate | date: "short" }}</td>
-                  <td>{{ transaction.accountBalance | currency }}</td>
+                  <td
+                    class="fw-semibold"
+                    [class]="getAmountClass(transaction.type)"
+                  >
+                    {{ transaction.type === "CREDIT" ? "+" : "-"
+                    }}{{ transaction.amount | currency }}
+                  </td>
                 </tr>
                 <tr *ngIf="transactions.length === 0">
                   <td colspan="8" class="text-center py-4 text-muted">
@@ -396,8 +454,10 @@ import { AdminCustomerService } from "../../services/customer.service";
                     *ngFor="let account of accountsForSelection"
                     [value]="account.accountId"
                   >
-                    {{ account.customerUsername }} -
-                    {{ account.customerName }} ({{ account.accountType }}:
+                    {{ account.accountId }} —
+                    {{ account.customerName || "Unknown" }} ({{
+                      account.accountType
+                    }}:
                     {{
                       account.balance | currency: "USD" : "symbol" : "1.2-2"
                     }})
@@ -528,6 +588,11 @@ export class AdminTransactionsComponent implements OnInit {
   pageSize = 20;
   currentPage = 0;
 
+  // Quick search & filters (header bar)
+  searchTerm = "";
+  selectedStatus = "";
+  selectedType = "";
+
   // Operation modal
   currentOperation: "credit" | "debit" = "credit";
   operationLoading = false;
@@ -575,6 +640,16 @@ export class AdminTransactionsComponent implements OnInit {
     });
   }
 
+  onSearch(): void {
+    this.currentPage = 0;
+    this.applyFilters();
+  }
+
+  onFilterChange(): void {
+    this.currentPage = 0;
+    this.applyFilters();
+  }
+
   private loadCustomerAccountIds(customerId: number): void {
     this.adminCustomerService.getCustomerAccounts(customerId).subscribe({
       next: (accounts) => {
@@ -598,9 +673,9 @@ export class AdminTransactionsComponent implements OnInit {
     this.bankingApiService.getAccountsForSelection().subscribe({
       next: (accounts: any[]) => {
         this.accountsForSelection = (accounts || []).map((a) => ({
-          accountId: a.accountId ?? a.id,
-          customerUsername: a.customerDTO?.name ?? a.customerUsername ?? "",
-          customerName: a.customerDTO?.name ?? a.customerName ?? "",
+          accountId: a.id ?? a.accountId ?? "",
+          customerUsername: a.customerName ?? a.customerDTO?.name ?? "",
+          customerName: a.customerName ?? a.customerDTO?.name ?? "",
           accountType: a.type ?? a.accountType ?? "Account",
           balance: a.balance ?? 0,
           status: (a.status ?? "ACTIVATED") as
@@ -629,7 +704,17 @@ export class AdminTransactionsComponent implements OnInit {
 
     this.accountService.getTransactions(fetchFilter).subscribe({
       next: (response) => {
-        this.allTransactions = response.content ?? [];
+        const raw = response.content ?? [];
+        // Sort by operationDate desc so newest records appear first (before any filter)
+        this.allTransactions = raw.slice().sort((a, b) => {
+          const aDate = a.operationDate
+            ? new Date(a.operationDate).getTime()
+            : 0;
+          const bDate = b.operationDate
+            ? new Date(b.operationDate).getTime()
+            : 0;
+          return bDate - aDate;
+        });
         this.applyFilters();
         this.loading = false;
       },
@@ -704,6 +789,43 @@ export class AdminTransactionsComponent implements OnInit {
       });
     }
 
+    const term = this.searchTerm.trim().toLowerCase();
+    if (term) {
+      list = list.filter((t) => {
+        const accountId = (t.accountId ?? t.bankAccountId ?? "")
+          .toString()
+          .toLowerCase();
+        const accountNumber = (t.accountNumber ?? "").toString().toLowerCase();
+        const description = (t.description ?? "").toString().toLowerCase();
+        return (
+          accountId.includes(term) ||
+          accountNumber.includes(term) ||
+          description.includes(term)
+        );
+      });
+    }
+
+    const statusFilter = this.selectedStatus.trim().toUpperCase();
+    if (statusFilter) {
+      list = list.filter(
+        (t) => (t.status ?? "").toString().toUpperCase() === statusFilter,
+      );
+    }
+
+    const quickTypeFilter = this.selectedType.trim().toUpperCase();
+    if (quickTypeFilter) {
+      list = list.filter((t) => {
+        const tType = (t.type ?? "").toString().toUpperCase();
+        if (quickTypeFilter === "DEPOSIT") {
+          return tType === "DEPOSIT" || tType === "CREDIT";
+        }
+        if (quickTypeFilter === "WITHDRAWAL") {
+          return tType === "WITHDRAWAL" || tType === "DEBIT";
+        }
+        return tType === quickTypeFilter;
+      });
+    }
+
     const totalElements = list.length;
     const size = Number(this.pageSize) || 20;
     const totalPages = Math.max(1, Math.ceil(totalElements / size));
@@ -734,6 +856,10 @@ export class AdminTransactionsComponent implements OnInit {
 
   loadTransactionsWithoutFilters(): void {
     this.error = "";
+    this.loadTransactions();
+  }
+
+  refreshTransactions(): void {
     this.loadTransactions();
   }
 
@@ -859,10 +985,14 @@ export class AdminTransactionsComponent implements OnInit {
   performOperation(): void {
     if (this.operationForm.invalid) return;
 
+    const { accountId, amount, description } = this.operationForm.value;
+    if (!accountId || String(accountId).trim() === "") {
+      this.errorMessage = "Please select an account.";
+      return;
+    }
+
     this.operationLoading = true;
     this.errorMessage = "";
-
-    const { accountId, amount, description } = this.operationForm.value;
 
     let operation$;
     switch (this.currentOperation) {
@@ -895,9 +1025,23 @@ export class AdminTransactionsComponent implements OnInit {
       },
       error: (error) => {
         this.operationLoading = false;
-        this.errorMessage =
-          error.error?.message ||
-          `${this.getOperationTitle()} failed. Please try again.`;
+        const msg = error.error?.message || error.message;
+        if (
+          error.status === 404 ||
+          (msg && msg.toLowerCase().includes("not found"))
+        ) {
+          this.errorMessage =
+            msg ||
+            "Account not found. It may have been deleted or the ID is invalid.";
+        } else if (
+          error.status === 400 ||
+          (msg && msg.toLowerCase().includes("balance"))
+        ) {
+          this.errorMessage = msg || "Insufficient balance or invalid amount.";
+        } else {
+          this.errorMessage =
+            msg || `${this.getOperationTitle()} failed. Please try again.`;
+        }
         console.error("Operation error:", error);
       },
     });
@@ -934,10 +1078,20 @@ export class AdminTransactionsComponent implements OnInit {
     if (transaction.customer && transaction.customer.name) {
       return transaction.customer.name;
     }
-    if (transaction.performedBy) {
-      return transaction.performedBy;
+    const accountId = transaction.bankAccountId ?? transaction.accountId ?? "";
+    const account = this.accountsForSelection.find(
+      (acc) => acc.accountId === accountId,
+    );
+    if (account?.customerName) return account.customerName;
+    if (account?.customerUsername) return account.customerUsername;
+    if (
+      transaction.performedBy === "system-demo" ||
+      transaction.performedBy === "system"
+    ) {
+      return "—";
     }
-    return "Unknown Customer";
+    if (transaction.performedBy) return transaction.performedBy;
+    return "—";
   }
 
   getAccountDisplayName(accountId: string): string {
@@ -945,7 +1099,14 @@ export class AdminTransactionsComponent implements OnInit {
       (acc) => acc.accountId === accountId,
     );
     if (account) {
-      return `${account.customerUsername} - ${account.customerName} (${account.accountType})`;
+      const left = account.customerUsername || "";
+      const right = account.customerName || "";
+      const showRight =
+        right &&
+        right.trim().length > 0 &&
+        right.trim().toLowerCase() !== left.trim().toLowerCase();
+      const label = showRight ? `${left} - ${right}` : left || right || "";
+      return `${label} (${account.accountType})`;
     }
     return `Account ${accountId}`;
   }

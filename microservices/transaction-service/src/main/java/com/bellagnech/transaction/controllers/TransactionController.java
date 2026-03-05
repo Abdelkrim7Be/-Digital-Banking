@@ -65,5 +65,13 @@ public class TransactionController {
         log.info("Retrieving paginated transactions for account {} (page: {}, size: {})", accountId, page, size);
         return ResponseEntity.ok(transactionService.getAccountHistoryPaginated(accountId, page, size));
     }
+
+    @GetMapping
+    public ResponseEntity<Page<AccountOperationDTO>> getAllTransactions(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        log.info("Retrieving paginated list of all transactions (page: {}, size: {})", page, size);
+        return ResponseEntity.ok(transactionService.getAllTransactionsPaginated(page, size));
+    }
 }
 

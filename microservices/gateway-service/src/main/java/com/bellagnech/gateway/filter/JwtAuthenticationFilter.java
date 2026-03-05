@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+/** Validates JWT and forwards user headers to downstream services. */
 @Component
 @Slf4j
 public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config> {
@@ -46,13 +47,10 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
             ServerHttpRequest request = exchange.getRequest();
             String path = request.getURI().getPath();
 
-            // Skip JWT validation for public endpoints
             if (isPublicEndpoint(path)) {
                 log.debug("Skipping JWT validation for public endpoint: {}", path);
                 return chain.filter(exchange);
             }
-
-            // Check for Authorization header
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 log.warn("Missing Authorization header for path: {}", path);
                 return onError(exchange, "Missing Authorization header", HttpStatus.UNAUTHORIZED);
@@ -64,27 +62,20 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                 return onError(exchange, "Invalid Authorization header", HttpStatus.UNAUTHORIZED);
             }
 
+            String token = authHeader.substring(7);
             try {
-                String token = authHeader.substring(7);
-                
-                // Validate token
                 if (!isTokenValid(token)) {
                     log.warn("Invalid JWT token for path: {}", path);
                     return onError(exchange, "Invalid JWT token", HttpStatus.UNAUTHORIZED);
                 }
-
-                // Extract user info and add to headers for downstream services
                 String username = extractUsername(token);
                 String role = extractRole(token);
-                
                 ServerHttpRequest modifiedRequest = request.mutate()
                     .header("X-User-Name", username)
                     .header("X-User-Role", role)
                     .build();
-
                 log.debug("JWT validated successfully for user: {} on path: {}", username, path);
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
-
             } catch (Exception e) {
                 log.error("JWT validation error for path {}: {}", path, e.getMessage());
                 return onError(exchange, "JWT validation failed", HttpStatus.UNAUTHORIZED);
@@ -150,8 +141,6 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
         );
     }
 
-    public static class Config {
-        // Configuration properties if needed
-    }
+    public static class Config {}
 }
 

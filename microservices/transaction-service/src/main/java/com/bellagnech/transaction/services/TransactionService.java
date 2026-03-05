@@ -1,12 +1,14 @@
 package com.bellagnech.transaction.services;
 
 import com.bellagnech.transaction.clients.AccountServiceClient;
+import com.bellagnech.transaction.clients.CustomerServiceClient;
 import com.bellagnech.transaction.dtos.AccountOperationDTO;
 import com.bellagnech.transaction.entities.AccountOperation;
 import com.bellagnech.transaction.enums.OperationType;
 import com.bellagnech.transaction.exceptions.AccountNotFoundException;
 import com.bellagnech.transaction.exceptions.BalanceNotSufficientException;
 import com.bellagnech.transaction.repositories.AccountOperationRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +29,7 @@ public class TransactionService {
 
     private final AccountOperationRepository operationRepository;
     private final AccountServiceClient accountServiceClient;
+    private final CustomerServiceClient customerServiceClient;
 
     @Transactional
     public void credit(String accountId, double amount, String description) throws AccountNotFoundException {
@@ -33,10 +37,12 @@ public class TransactionService {
         
         AccountServiceClient.AccountDTO account = accountServiceClient.getAccount(accountId);
         if (account == null) {
-            throw new AccountNotFoundException("Account not found with ID: " + accountId);
+            throw new AccountNotFoundException(
+                "Account service temporarily unavailable or account not found: " + accountId + ". Ensure account-service is running and registered.");
         }
 
-        double newBalance = account.balance + amount;
+        double currentBalance = account.balance != null ? account.balance : 0.0;
+        double newBalance = currentBalance + amount;
         updateAccountBalance(accountId, newBalance);
 
         AccountOperation operation = new AccountOperation();
@@ -56,10 +62,11 @@ public class TransactionService {
         
         AccountServiceClient.AccountDTO account = accountServiceClient.getAccount(accountId);
         if (account == null) {
-            throw new AccountNotFoundException("Account not found with ID: " + accountId);
+            throw new AccountNotFoundException(
+                "Account service temporarily unavailable or account not found: " + accountId + ". Ensure account-service is running and registered.");
         }
 
-        double currentBalance = account.balance;
+        double currentBalance = account.balance != null ? account.balance : 0.0;
         double overdraft = 0.0; // Could be fetched from account details if needed
         
         if (currentBalance + overdraft < amount) {
@@ -93,22 +100,81 @@ public class TransactionService {
 
     public List<AccountOperationDTO> getAccountHistory(String accountId) {
         log.info("Retrieving transaction history for account {}", accountId);
-        return operationRepository.findByBankAccountIdOrderByOperationDateDesc(accountId).stream()
+        List<AccountOperationDTO> list = operationRepository.findByBankAccountIdOrderByOperationDateDesc(accountId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+        enrichWithCustomerNames(list);
+        return list;
     }
 
     public Page<AccountOperationDTO> getAccountHistoryPaginated(String accountId, int page, int size) {
         log.info("Retrieving paginated transaction history for account {} (page: {}, size: {})", accountId, page, size);
         Pageable pageable = PageRequest.of(page, size);
-        return operationRepository.findByBankAccountIdOrderByOperationDateDesc(accountId, pageable)
+        Page<AccountOperationDTO> result = operationRepository.findByBankAccountIdOrderByOperationDateDesc(accountId, pageable)
                 .map(this::toDTO);
+        enrichWithCustomerNames(result.getContent());
+        return result;
+    }
+
+    public Page<AccountOperationDTO> getAllTransactionsPaginated(int page, int size) {
+        log.info("Retrieving paginated list of all transactions (page: {}, size: {})", page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AccountOperationDTO> result = operationRepository.findAllByOrderByOperationDateDesc(pageable)
+                .map(this::toDTO);
+        enrichWithCustomerNames(result.getContent());
+        return result;
+    }
+
+    /**
+     * Resolve and set customerName for each DTO from account-service (cached per request to avoid N+1).
+     * Falls back to customer-service by customerId when account does not include customerName.
+     */
+    private void enrichWithCustomerNames(List<AccountOperationDTO> dtos) {
+        if (dtos == null || dtos.isEmpty()) return;
+        Map<String, String> cache = new ConcurrentHashMap<>();
+        for (AccountOperationDTO dto : dtos) {
+            String accountId = dto.getBankAccountId();
+            if (accountId == null || accountId.isBlank()) continue;
+            String name = cache.get(accountId);
+            if (name == null) {
+                try {
+                    AccountServiceClient.AccountDTO account = accountServiceClient.getAccount(accountId);
+                    if (account != null) {
+                        name = (account.customerName != null && !account.customerName.isBlank())
+                                ? account.customerName
+                                : null;
+                        if (name == null && account.customerId != null) {
+                            try {
+                                CustomerServiceClient.CustomerDTO customer = customerServiceClient.getCustomer(account.customerId);
+                                name = customer != null && customer.name != null && !customer.name.isBlank()
+                                        ? customer.name
+                                        : dto.getPerformedBy();
+                            } catch (Exception e) {
+                                log.debug("Could not resolve customer {} for account {}: {}", account.customerId, accountId, e.getMessage());
+                                name = dto.getPerformedBy();
+                            }
+                        }
+                        if (name == null) name = dto.getPerformedBy();
+                    } else {
+                        name = dto.getPerformedBy();
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not resolve customer name for account {}: {}", accountId, e.getMessage());
+                    name = dto.getPerformedBy();
+                }
+                cache.put(accountId, name != null ? name : "");
+            }
+            dto.setCustomerName(name != null && !name.isEmpty() ? name : dto.getPerformedBy());
+        }
     }
 
     private void updateAccountBalance(String accountId, double newBalance) {
         try {
             Map<String, Double> balanceUpdate = Map.of("balance", newBalance);
             accountServiceClient.updateBalance(accountId, balanceUpdate);
+        } catch (FeignException e) {
+            log.error("Account service call failed for balance update, account {}: status={}", accountId, e.status());
+            throw e; // Let GlobalExceptionHandler return 404/502 with a clear message
         } catch (Exception e) {
             log.error("Failed to update account balance for account {}: {}", accountId, e.getMessage());
             throw new RuntimeException("Failed to update account balance", e);

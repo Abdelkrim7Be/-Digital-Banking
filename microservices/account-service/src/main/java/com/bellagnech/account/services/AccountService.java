@@ -17,12 +17,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import feign.FeignException;
+
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+// Account CRUD, balance updates, and Kafka events.
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -35,16 +38,16 @@ public class AccountService {
     @Transactional
     public CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraft, Long customerId)
             throws CustomerNotFoundException {
-        log.info("Creating current account for customer ID: {} with balance: {} and overdraft: {}", 
+        log.info("Creating current account for customer ID: {} with balance: {} and overdraft: {}",
                 customerId, initialBalance, overDraft);
-        
-        // Validate customer exists
         try {
             customerServiceClient.getCustomer(customerId);
-        } catch (Exception e) {
+        } catch (FeignException.NotFound notFound) {
             throw new CustomerNotFoundException("Customer not found with ID: " + customerId);
+        } catch (Exception e) {
+            log.warn("Could not strictly validate customer {}: {}. Proceeding with account creation.",
+                    customerId, e.getMessage());
         }
-
         CurrentAccount account = new CurrentAccount();
         account.setId(UUID.randomUUID().toString());
         account.setBalance(initialBalance);
@@ -60,14 +63,15 @@ public class AccountService {
     @Transactional
     public SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId)
             throws CustomerNotFoundException {
-        log.info("Creating saving account for customer ID: {} with balance: {} and interest rate: {}", 
+        log.info("Creating saving account for customer ID: {} with balance: {} and interest rate: {}",
                 customerId, initialBalance, interestRate);
-        
-        // Validate customer exists
         try {
             customerServiceClient.getCustomer(customerId);
-        } catch (Exception e) {
+        } catch (FeignException.NotFound notFound) {
             throw new CustomerNotFoundException("Customer not found with ID: " + customerId);
+        } catch (Exception e) {
+            log.warn("Could not strictly validate customer {} for saving account: {}. Proceeding.",
+                    customerId, e.getMessage());
         }
 
         SavingAccount account = new SavingAccount();
@@ -106,6 +110,46 @@ public class AccountService {
                 .collect(Collectors.toList());
         enrichWithCustomerNames(list);
         return list;
+    }
+
+    public Map<String, Object> getAccountStats() {
+        log.info("Calculating global account statistics");
+        List<BankAccount> accounts = bankAccountRepository.findAll();
+
+        int totalAccounts = accounts.size();
+        double totalBalance = accounts.stream()
+                .mapToDouble(BankAccount::getBalance)
+                .sum();
+
+        Map<String, Long> accountsByType = accounts.stream()
+                .collect(Collectors.groupingBy(
+                        acc -> acc.getClass().getSimpleName(),
+                        Collectors.counting()
+                ));
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalAccounts", totalAccounts);
+        stats.put("totalBalance", totalBalance);
+        stats.put("averageBalance", totalAccounts == 0 ? 0.0 : totalBalance / totalAccounts);
+        stats.put("accountsByType", accountsByType);
+        return stats;
+    }
+
+    public List<Map<String, Object>> getAccountsForSelection(boolean onlyActive) {
+        log.info("Loading accounts for selection dropdown, onlyActive={}", onlyActive);
+        List<BankAccount> accounts = bankAccountRepository.findAll();
+        return accounts.stream()
+                .filter(acc -> !onlyActive || acc.getStatus() == AccountStatus.ACTIVATED)
+                .map(acc -> {
+                    Map<String, Object> dto = new HashMap<>();
+                    dto.put("id", acc.getId());
+                    dto.put("balance", acc.getBalance());
+                    dto.put("status", acc.getStatus());
+                    dto.put("customerId", acc.getCustomerId());
+                    dto.put("type", acc.getClass().getSimpleName());
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
     private void enrichWithCustomer(BankAccountDTO dto) {
@@ -161,17 +205,20 @@ public class AccountService {
         account.setBalance(newBalance);
         bankAccountRepository.save(account);
 
-        // Publish balance updated event
-        AccountBalanceUpdatedEvent event = AccountBalanceUpdatedEvent.builder()
-                .eventType("BALANCE_UPDATED")
-                .aggregateId(accountId)
-                .accountId(accountId)
-                .previousBalance(previousBalance)
-                .newBalance(newBalance)
-                .reason("Balance update")
-                .initiatedBy("system")
-                .build();
-        eventProducer.publishBalanceUpdated(event);
+        try {
+            AccountBalanceUpdatedEvent event = AccountBalanceUpdatedEvent.builder()
+                    .eventType("BALANCE_UPDATED")
+                    .aggregateId(accountId)
+                    .accountId(accountId)
+                    .previousBalance(previousBalance)
+                    .newBalance(newBalance)
+                    .reason("Balance update")
+                    .initiatedBy("system")
+                    .build();
+            eventProducer.publishBalanceUpdated(event);
+        } catch (Exception e) {
+            log.warn("Failed to publish balance updated event for account {} (balance was updated): {}", accountId, e.getMessage());
+        }
     }
 
     private void publishAccountCreatedEvent(String accountId, Long customerId, String accountType, double initialBalance, String status) {
@@ -208,6 +255,12 @@ public class AccountService {
         dto.setStatus(account.getStatus());
         dto.setCustomerId(account.getCustomerId());
         dto.setType(account.getClass().getSimpleName());
+        if (account instanceof CurrentAccount current) {
+            dto.setOverDraft(current.getOverDraft());
+        }
+        if (account instanceof SavingAccount saving) {
+            dto.setInterestRate(saving.getInterestRate());
+        }
         return dto;
     }
 

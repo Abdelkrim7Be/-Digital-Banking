@@ -1,15 +1,15 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { RouterModule } from "@angular/router";
 import {
   AdminAccountService,
   BankAccount,
   AccountSearchParams,
-} from '../../services/account.service';
+} from "../../services/account.service";
 
 @Component({
-  selector: 'app-admin-account-list',
+  selector: "app-admin-account-list",
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
@@ -101,199 +101,177 @@ import {
                   </thead>
                   <tbody>
                     @if (loading) {
-                    <tr>
-                      <td colspan="7" class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                          <span class="visually-hidden">Loading...</span>
-                        </div>
-                      </td>
-                    </tr>
-                    } @else if (filteredAccounts.length === 0) {
-                    <tr>
-                      <td colspan="7" class="text-center py-4 text-muted">
-                        No accounts found
-                      </td>
-                    </tr>
-                    } @else { @for (account of paginatedAccounts; track
-                    account.id) {
-                    <tr>
-                      <td>
-                        <code class="text-primary">{{ account.id }}</code>
-                      </td>
-                      <td>
-                        @if (account.customerDTO) {
-                        <div>
-                          <strong>{{ account.customerDTO.name }}</strong>
-                          <br />
-                          <small class="text-muted">{{
-                            account.customerDTO.email
-                          }}</small>
-                        </div>
-                        } @else {
-                        <span class="text-muted">N/A</span>
-                        }
-                      </td>
-                      <td>
-                        <span
-                          class="badge"
-                          [class]="
-                            account.type === 'CurrentAccount'
-                              ? 'bg-info'
-                              : 'bg-success'
-                          "
-                        >
-                          {{
-                            account.type === 'CurrentAccount'
-                              ? 'Current'
-                              : 'Saving'
-                          }}
-                        </span>
-                      </td>
-                      <td>
-                        <strong
-                          [class]="
-                            account.balance >= 0
-                              ? 'text-success'
-                              : 'text-danger'
-                          "
-                        >
-                          {{ account.balance | currency : 'USD' : 'symbol' }}
-                        </strong>
-                      </td>
-                      <td>
-                        <span
-                          class="badge"
-                          [class]="getStatusBadgeClass(account.status)"
-                        >
-                          {{ account.status }}
-                        </span>
-                      </td>
-                      <td>
-                        {{ account.createDate | date : 'short' }}
-                      </td>
-                      <td>
-                        <div class="btn-group btn-group-sm">
-                          <button
-                            type="button"
-                            class="btn btn-outline-primary"
-                            [routerLink]="['/admin/accounts', account.id]"
-                            title="View Details"
+                      <tr>
+                        <td colspan="7" class="text-center py-4">
+                          <div
+                            class="spinner-border text-primary"
+                            role="status"
                           >
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <div class="dropdown">
-                            <button
-                              class="btn btn-outline-secondary dropdown-toggle"
-                              type="button"
-                              [id]="'statusDropdown' + account.id"
-                              data-bs-toggle="dropdown"
-                              title="Change Status"
-                            >
-                              <i class="fas fa-cog"></i>
-                            </button>
-                            <ul
-                              class="dropdown-menu"
-                              [attr.aria-labelledby]="
-                                'statusDropdown' + account.id
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    } @else if (filteredAccounts.length === 0) {
+                      <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                          No accounts found
+                        </td>
+                      </tr>
+                    } @else {
+                      @for (account of paginatedAccounts; track account.id) {
+                        <tr>
+                          <td>
+                            <code class="text-primary">{{ account.id }}</code>
+                          </td>
+                          <td>
+                            @if (account.customerDTO) {
+                              <div>
+                                <strong>{{ account.customerDTO.name }}</strong>
+                                <br />
+                                <small class="text-muted">{{
+                                  account.customerDTO.email
+                                }}</small>
+                              </div>
+                            } @else {
+                              <span class="text-muted">N/A</span>
+                            }
+                          </td>
+                          <td>
+                            <span
+                              class="badge"
+                              [class]="
+                                account.type === 'CurrentAccount'
+                                  ? 'bg-info'
+                                  : 'bg-success'
                               "
                             >
-                              <li>
-                                <button
-                                  class="dropdown-item"
-                                  (click)="
-                                    updateAccountStatus(account, 'ACTIVATED')
-                                  "
-                                  [disabled]="account.status === 'ACTIVATED'"
-                                >
-                                  <i
-                                    class="fas fa-check-circle text-success me-2"
-                                  ></i>
-                                  Activate
-                                </button>
-                              </li>
-                              <li>
-                                <button
-                                  class="dropdown-item"
-                                  (click)="
-                                    updateAccountStatus(account, 'SUSPENDED')
-                                  "
-                                  [disabled]="account.status === 'SUSPENDED'"
-                                >
-                                  <i
-                                    class="fas fa-pause-circle text-warning me-2"
-                                  ></i>
-                                  Suspend
-                                </button>
-                              </li>
-                              <li>
-                                <button
-                                  class="dropdown-item"
-                                  (click)="closeAccount(account)"
-                                  [disabled]="account.status === 'CLOSED'"
-                                >
-                                  <i
-                                    class="fas fa-times-circle text-danger me-2"
-                                  ></i>
-                                  Close Account
-                                </button>
-                              </li>
-                              <li><hr class="dropdown-divider" /></li>
-                              <li>
-                                <button
-                                  class="dropdown-item text-danger"
-                                  (click)="deleteAccount(account)"
-                                  [disabled]="account.status !== 'CLOSED'"
-                                >
-                                  <i class="fas fa-trash me-2"></i>
-                                  Delete Account
-                                </button>
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    } }
+                              {{
+                                account.type === "CurrentAccount"
+                                  ? "Current"
+                                  : "Saving"
+                              }}
+                            </span>
+                          </td>
+                          <td>
+                            <strong
+                              [class]="
+                                account.balance >= 0
+                                  ? 'text-success'
+                                  : 'text-danger'
+                              "
+                            >
+                              {{ account.balance | currency: "USD" : "symbol" }}
+                            </strong>
+                          </td>
+                          <td>
+                            <span
+                              class="badge"
+                              [class]="getStatusBadgeClass(account.status)"
+                            >
+                              {{ account.status }}
+                            </span>
+                          </td>
+                          <td>
+                            {{ account.createDate | date: "short" }}
+                          </td>
+                          <td>
+                            <div class="btn-group btn-group-sm">
+                              <button
+                                type="button"
+                                class="btn btn-outline-primary"
+                                [routerLink]="['/admin/accounts', account.id]"
+                                title="View Details"
+                              >
+                                <i class="bi bi-eye"></i>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-success"
+                                (click)="
+                                  updateAccountStatus(account, 'ACTIVATED')
+                                "
+                                [disabled]="account.status === 'ACTIVATED'"
+                                title="Activate"
+                              >
+                                <i class="bi bi-check-circle"></i>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-warning"
+                                (click)="
+                                  updateAccountStatus(account, 'SUSPENDED')
+                                "
+                                [disabled]="account.status === 'SUSPENDED'"
+                                title="Suspend"
+                              >
+                                <i class="bi bi-pause-circle"></i>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary"
+                                (click)="closeAccount(account)"
+                                [disabled]="account.status === 'CLOSED'"
+                                title="Close Account"
+                              >
+                                <i class="bi bi-x-circle"></i>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-danger"
+                                (click)="deleteAccount(account)"
+                                [disabled]="account.status !== 'CLOSED'"
+                                title="Delete Account"
+                              >
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    }
                   </tbody>
                 </table>
               </div>
 
               <!-- Pagination -->
               @if (totalPages > 1) {
-              <nav aria-label="Accounts pagination">
-                <ul class="pagination justify-content-center">
-                  <li class="page-item" [class.disabled]="currentPage === 1">
-                    <button
-                      class="page-link"
-                      (click)="goToPage(currentPage - 1)"
-                      [disabled]="currentPage === 1"
-                    >
-                      Previous
-                    </button>
-                  </li>
+                <nav aria-label="Accounts pagination">
+                  <ul class="pagination justify-content-center">
+                    <li class="page-item" [class.disabled]="currentPage === 1">
+                      <button
+                        class="page-link"
+                        (click)="goToPage(currentPage - 1)"
+                        [disabled]="currentPage === 1"
+                      >
+                        Previous
+                      </button>
+                    </li>
 
-                  @for (page of getVisiblePages(); track page) {
-                  <li class="page-item" [class.active]="page === currentPage">
-                    <button class="page-link" (click)="goToPage(page)">
-                      {{ page }}
-                    </button>
-                  </li>
-                  }
+                    @for (page of getVisiblePages(); track page) {
+                      <li
+                        class="page-item"
+                        [class.active]="page === currentPage"
+                      >
+                        <button class="page-link" (click)="goToPage(page)">
+                          {{ page }}
+                        </button>
+                      </li>
+                    }
 
-                  <li
-                    class="page-item"
-                    [class.disabled]="currentPage === totalPages"
-                  >
-                    <button
-                      class="page-link"
-                      (click)="goToPage(currentPage + 1)"
-                      [disabled]="currentPage === totalPages"
+                    <li
+                      class="page-item"
+                      [class.disabled]="currentPage === totalPages"
                     >
-                      Next
-                    </button>
-                  </li>
-                </ul>
-              </nav>
+                      <button
+                        class="page-link"
+                        (click)="goToPage(currentPage + 1)"
+                        [disabled]="currentPage === totalPages"
+                      >
+                        Next
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
               }
 
               <!-- Summary -->
@@ -355,9 +333,9 @@ export class AdminAccountListComponent implements OnInit {
   loading = false;
 
   // Search and filter
-  searchTerm = '';
-  selectedStatus = '';
-  selectedType = '';
+  searchTerm = "";
+  selectedStatus = "";
+  selectedType = "";
 
   // Pagination
   currentPage = 1;
@@ -376,37 +354,77 @@ export class AdminAccountListComponent implements OnInit {
 
   loadAccounts(): void {
     this.loading = true;
-    const params: AccountSearchParams = {
-      page: this.currentPage - 1,
-      size: this.pageSize,
-      search: this.searchTerm || undefined,
-      status: this.selectedStatus || undefined,
-    };
-
-    this.accountService.getAccounts(params).subscribe({
+    // Load all accounts; backend returns full list and does not filter by params
+    this.accountService.getAccounts({ size: 10000 }).subscribe({
       next: (response) => {
-        this.accounts = response.content;
-        this.filteredAccounts = this.accounts;
-        this.paginatedAccounts = this.accounts;
-        this.totalElements = response.totalElements;
-        this.totalPages = response.totalPages;
+        this.accounts = response.content || [];
+        this.applyFiltersAndSort();
         this.loading = false;
       },
       error: (err) => {
-        console.error('Error loading accounts:', err);
+        console.error("Error loading accounts:", err);
+        this.accounts = [];
+        this.filteredAccounts = [];
+        this.paginatedAccounts = [];
+        this.totalElements = 0;
+        this.totalPages = 0;
         this.loading = false;
       },
     });
   }
 
+  /** Apply client-side filter by search, status, type and sort by createDate desc (newest first). */
+  applyFiltersAndSort(): void {
+    let list = [...this.accounts];
+
+    const term = (this.searchTerm || "").trim().toLowerCase();
+    if (term) {
+      list = list.filter((acc) => {
+        const id = (acc.id || "").toString().toLowerCase();
+        const custName = (acc.customerDTO?.name || "").toLowerCase();
+        const custEmail = (acc.customerDTO?.email || "").toLowerCase();
+        return (
+          id.includes(term) ||
+          custName.includes(term) ||
+          custEmail.includes(term)
+        );
+      });
+    }
+
+    if (this.selectedStatus) {
+      list = list.filter(
+        (acc) => (acc.status || "").toUpperCase() === this.selectedStatus,
+      );
+    }
+
+    if (this.selectedType) {
+      const typeNorm = (this.selectedType || "").toUpperCase();
+      list = list.filter((acc) => (acc.type || "").toUpperCase() === typeNorm);
+    }
+
+    // Sort by createDate desc (newest first)
+    list.sort((a, b) => {
+      const aDate = a.createDate ? new Date(a.createDate).getTime() : 0;
+      const bDate = b.createDate ? new Date(b.createDate).getTime() : 0;
+      return bDate - aDate;
+    });
+
+    this.filteredAccounts = list;
+    this.totalElements = list.length;
+    this.totalPages = Math.max(1, Math.ceil(list.length / this.pageSize));
+    this.currentPage = Math.min(this.currentPage, this.totalPages || 1);
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.paginatedAccounts = list.slice(start, start + this.pageSize);
+  }
+
   onSearch(): void {
     this.currentPage = 1;
-    this.loadAccounts();
+    this.applyFiltersAndSort();
   }
 
   onFilterChange(): void {
     this.currentPage = 1;
-    this.loadAccounts();
+    this.applyFiltersAndSort();
   }
 
   updateAccountStatus(account: BankAccount, status: string): void {
@@ -416,7 +434,7 @@ export class AdminAccountListComponent implements OnInit {
           account.status = updatedAccount.status;
         },
         error: (err) => {
-          console.error('Error updating account status:', err);
+          console.error("Error updating account status:", err);
         },
       });
     }
@@ -425,7 +443,7 @@ export class AdminAccountListComponent implements OnInit {
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
       this.currentPage = page;
-      this.loadAccounts();
+      this.applyFiltersAndSort();
     }
   }
 
@@ -443,16 +461,16 @@ export class AdminAccountListComponent implements OnInit {
 
   getStatusBadgeClass(status: string): string {
     switch (status) {
-      case 'ACTIVATED':
-        return 'bg-success';
-      case 'SUSPENDED':
-        return 'bg-warning';
-      case 'CLOSED':
-        return 'bg-danger';
-      case 'CREATED':
-        return 'bg-secondary';
+      case "ACTIVATED":
+        return "bg-success";
+      case "SUSPENDED":
+        return "bg-warning";
+      case "CLOSED":
+        return "bg-danger";
+      case "CREATED":
+        return "bg-secondary";
       default:
-        return 'bg-secondary';
+        return "bg-secondary";
     }
   }
 
@@ -469,14 +487,14 @@ export class AdminAccountListComponent implements OnInit {
     this.accountService.exportAccounts(params).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
-        link.download = 'accounts.csv';
+        link.download = "accounts.csv";
         link.click();
         window.URL.revokeObjectURL(url);
       },
       error: (err) => {
-        console.error('Error exporting accounts:', err);
+        console.error("Error exporting accounts:", err);
       },
     });
   }
@@ -485,7 +503,7 @@ export class AdminAccountListComponent implements OnInit {
     const confirmMessage = `Are you sure you want to close this account?
 
 Account: ${account.id}
-Customer: ${account.customerDTO?.name || 'Unknown'}
+Customer: ${account.customerDTO?.name || "Unknown"}
 Current Balance: ${account.balance}
 
 ⚠️ Warning: This action will:
@@ -496,21 +514,21 @@ Current Balance: ${account.balance}
 This action can be reversed by reactivating the account.`;
 
     if (confirm(confirmMessage)) {
-      this.updateAccountStatus(account, 'CLOSED');
+      this.updateAccountStatus(account, "CLOSED");
     }
   }
 
   deleteAccount(account: BankAccount): void {
-    if (account.status !== 'CLOSED') {
+    if (account.status !== "CLOSED") {
       alert(
-        'Account must be closed before it can be deleted. Please close the account first.'
+        "Account must be closed before it can be deleted. Please close the account first.",
       );
       return;
     }
 
     const confirmMessage = `⚠️ DANGER: Delete Account ${account.id}?
 
-Customer: ${account.customerDTO?.name || 'Unknown'}
+Customer: ${account.customerDTO?.name || "Unknown"}
 Current Balance: ${account.balance}
 
 This will PERMANENTLY DELETE the account and cannot be undone!
@@ -520,18 +538,18 @@ Are you absolutely sure you want to delete this account?`;
     if (confirm(confirmMessage)) {
       this.accountService.deleteAccount(account.id).subscribe({
         next: () => {
-          alert('Account deleted successfully');
+          alert("Account deleted successfully");
           this.loadAccounts(); // Refresh the list
         },
         error: (err: any) => {
-          console.error('Error deleting account:', err);
-          let errorMessage = 'Failed to delete account. Please try again.';
+          console.error("Error deleting account:", err);
+          let errorMessage = "Failed to delete account. Please try again.";
 
           if (err.status === 400) {
             errorMessage =
-              'Cannot delete account. It may have pending transactions or other dependencies.';
+              "Cannot delete account. It may have pending transactions or other dependencies.";
           } else if (err.status === 403) {
-            errorMessage = 'You do not have permission to delete this account.';
+            errorMessage = "You do not have permission to delete this account.";
           }
 
           alert(errorMessage);

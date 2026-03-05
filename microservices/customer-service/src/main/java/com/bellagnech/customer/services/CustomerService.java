@@ -28,6 +28,14 @@ public class CustomerService {
     private final UserRepository userRepository;
     private final CustomerEventProducer eventProducer;
 
+    public record CustomerStats(
+            long totalCustomers,
+            long activeCustomers,
+            long inactiveCustomers,
+            long suspendedCustomers,
+            long newCustomersThisMonth
+    ) {}
+
     @Transactional
     public CustomerDTO saveCustomer(CustomerDTO customerDTO) {
         log.info("Saving customer: {}", customerDTO.getName());
@@ -58,12 +66,26 @@ public class CustomerService {
         log.info("Updating customer with ID: {}", customerDTO.getId());
         Customer existing = customerRepository.findById(customerDTO.getId())
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found with ID: " + customerDTO.getId()));
-        
+
         existing.setName(customerDTO.getName());
         existing.setEmail(customerDTO.getEmail());
         existing.setPhone(customerDTO.getPhone());
         existing.setAddress(customerDTO.getAddress());
-        
+
+        User user = existing.getUser();
+        if (user != null) {
+            if (customerDTO.getUsername() != null && !customerDTO.getUsername().isBlank()) {
+                user.setUsername(customerDTO.getUsername().trim());
+            }
+            if (customerDTO.getFirstName() != null) {
+                user.setFirstName(customerDTO.getFirstName());
+            }
+            if (customerDTO.getLastName() != null) {
+                user.setLastName(customerDTO.getLastName());
+            }
+            userRepository.save(user);
+        }
+
         Customer updated = customerRepository.save(existing);
         return toDTO(updated);
     }
@@ -119,6 +141,54 @@ public class CustomerService {
         return toDTO(customer);
     }
 
+    @Transactional
+    public List<CustomerDTO> bulkUpdateCustomerStatus(List<Long> customerIds, boolean enabled) {
+        log.info("Bulk updating customer status for {} customers to enabled={}", customerIds.size(), enabled);
+        return customerIds.stream()
+                .map(id -> {
+                    try {
+                        return updateCustomerStatus(id, enabled);
+                    } catch (CustomerNotFoundException e) {
+                        log.warn("Customer not found during bulk status update: {}", id);
+                        return null;
+                    }
+                })
+                .filter(dto -> dto != null)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void bulkDeleteCustomers(List<Long> customerIds) {
+        log.info("Bulk deleting {} customers", customerIds.size());
+        customerIds.forEach(id -> {
+            if (customerRepository.existsById(id)) {
+                customerRepository.deleteById(id);
+            } else {
+                log.warn("Customer not found during bulk delete: {}", id);
+            }
+        });
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerStats getCustomerStats() {
+        long total = customerRepository.count();
+        long active = userRepository.countByEnabledTrue();
+        long inactive = userRepository.countByEnabledFalse();
+        // For now, treat locked accounts as suspended
+        long suspended = userRepository.countByAccountNonLockedFalse();
+
+        // Simple approximation for "new this month" using createdDate
+        long newThisMonth = userRepository.countCreatedThisMonth();
+
+        return new CustomerStats(
+                total,
+                active,
+                inactive,
+                suspended,
+                newThisMonth
+        );
+    }
+
     private CustomerDTO toDTO(Customer customer) {
         CustomerDTO dto = new CustomerDTO();
         dto.setId(customer.getId());
@@ -130,6 +200,11 @@ public class CustomerService {
         User user = customer.getUser();
         if (user != null) {
             enabled = user.isEnabled();
+            dto.setUsername(user.getUsername());
+            dto.setFirstName(user.getFirstName());
+            dto.setLastName(user.getLastName());
+            dto.setRole(user.getRole() != null ? user.getRole().name() : null);
+            dto.setCreatedAt(user.getCreatedDate());
         }
         dto.setEnabled(enabled);
         return dto;

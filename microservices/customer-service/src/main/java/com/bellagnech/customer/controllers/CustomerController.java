@@ -57,6 +57,32 @@ public class CustomerController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<CustomerDTO> updateCustomerStatus(
+            @PathVariable Long id,
+            @RequestBody StatusUpdateRequest request) throws CustomerNotFoundException {
+        log.info("Updating status for customer ID: {} to enabled={}", id, request.enabled());
+        CustomerDTO updated = customerService.updateCustomerStatus(id, request.enabled());
+        return ResponseEntity.ok(updated);
+    }
+
+    @PatchMapping("/bulk/status")
+    public ResponseEntity<List<CustomerDTO>> bulkUpdateStatus(@RequestBody BulkStatusUpdateRequest request) {
+        log.info("Bulk updating status for {} customers to enabled={}",
+                request.customerIds() != null ? request.customerIds().size() : 0,
+                request.enabled());
+        List<CustomerDTO> updated = customerService.bulkUpdateCustomerStatus(request.customerIds(), request.enabled());
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/bulk")
+    public ResponseEntity<Void> bulkDelete(@RequestBody BulkDeleteRequest request) {
+        log.info("Bulk deleting {} customers",
+                request.customerIds() != null ? request.customerIds().size() : 0);
+        customerService.bulkDeleteCustomers(request.customerIds());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/page")
     public ResponseEntity<Page<CustomerDTO>> getCustomersPage(
             @RequestParam(name = "page", defaultValue = "0") int page,
@@ -75,5 +101,17 @@ public class CustomerController {
         Page<CustomerDTO> customersPage = customerService.searchCustomers(keyword, page, size);
         return ResponseEntity.ok(customersPage);
     }
+
+    @GetMapping("/stats")
+    public ResponseEntity<CustomerService.CustomerStats> getStats() {
+        log.info("Retrieving customer statistics");
+        return ResponseEntity.ok(customerService.getCustomerStats());
+    }
+
+    public record StatusUpdateRequest(boolean enabled) {}
+
+    public record BulkStatusUpdateRequest(List<Long> customerIds, boolean enabled) {}
+
+    public record BulkDeleteRequest(List<Long> customerIds) {}
 }
 

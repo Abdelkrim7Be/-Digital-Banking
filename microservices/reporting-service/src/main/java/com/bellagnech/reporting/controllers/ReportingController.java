@@ -22,6 +22,22 @@ public class ReportingController {
         return ResponseEntity.ok(reportingService.getDashboardStats());
     }
 
+    /**
+     * Dedicated stats endpoint used by the admin dashboard widget.
+     * Returns the same payload as /dashboard for backward compatibility.
+     */
+    @GetMapping("/dashboard/stats")
+    public ResponseEntity<Map<String, Object>> getDashboardStatsForAdmin() {
+        log.info("Dashboard stats requested (admin widget)");
+        return ResponseEntity.ok(reportingService.getDashboardStats());
+    }
+
+    @GetMapping("/dashboard/transactions-summary")
+    public ResponseEntity<Map<String, Object>> getDashboardTransactionsSummary() {
+        log.info("Dashboard transactions summary requested");
+        return ResponseEntity.ok(reportingService.getTransactionsSummary());
+    }
+
     @GetMapping("/customer-summary")
     public ResponseEntity<Map<String, Object>> getCustomerSummaryReport() {
         log.info("Customer summary report requested");

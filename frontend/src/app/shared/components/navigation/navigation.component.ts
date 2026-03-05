@@ -1,12 +1,12 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
-import { AuthService } from '../../../auth/services/auth.service';
-import { User, UserRole } from '../../../auth/models/auth.model';
+import { Component, OnInit, OnDestroy } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { RouterModule, Router } from "@angular/router";
+import { Subject, takeUntil } from "rxjs";
+import { AuthService } from "../../../auth/services/auth.service";
+import { User, UserRole } from "../../../auth/models/auth.model";
 
 @Component({
-  selector: 'app-navigation',
+  selector: "app-navigation",
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
@@ -15,7 +15,7 @@ import { User, UserRole } from '../../../auth/models/auth.model';
         <!-- Brand -->
         <a class="navbar-brand d-flex align-items-center" routerLink="/">
           <i class="bi bi-bank text-primary me-2 fs-3"></i>
-          <span class="fw-bold">Digital Banking</span>
+          <span class="fw-semibold brand-text">Finastrax</span>
         </a>
 
         <!-- Mobile Toggle -->
@@ -30,7 +30,7 @@ import { User, UserRole } from '../../../auth/models/auth.model';
 
         <!-- Navigation Items -->
         <div class="collapse navbar-collapse" [class.show]="showMobileMenu">
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
             <!-- Admin Navigation -->
             <ng-container *ngIf="isAdmin">
               <li class="nav-item">
@@ -150,14 +150,18 @@ import { User, UserRole } from '../../../auth/models/auth.model';
                 role="button"
                 (click)="toggleUserDropdown($event)"
               >
-                <div class="user-avatar me-2">
-                  <i class="bi bi-person-circle fs-4"></i>
-                </div>
-                <div class="d-none d-md-block">
-                  <div class="fw-semibold">
-                    {{ currentUser.firstName }} {{ currentUser.lastName }}
+                <div class="position-relative me-2">
+                  <div class="user-avatar">
+                    <i class="bi bi-person-circle fs-4"></i>
                   </div>
-                  <small class="text-muted">{{ currentUser.role }}</small>
+                </div>
+                <div class="d-none d-md-block text-start">
+                  <div class="fw-semibold">
+                    {{ displayName }}
+                  </div>
+                  <small class="text-muted text-uppercase">
+                    {{ currentUser.role }}
+                  </small>
                 </div>
               </a>
               <ul
@@ -166,24 +170,14 @@ import { User, UserRole } from '../../../auth/models/auth.model';
               >
                 <li>
                   <h6 class="dropdown-header">
-                    <i class="bi bi-person me-2"></i
-                    >{{ currentUser.firstName }} {{ currentUser.lastName }}
+                    <i class="bi bi-person me-2"></i>
+                    {{ displayName }}
                   </h6>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
                   <a class="dropdown-item" routerLink="/profile">
                     <i class="bi bi-person-gear me-2"></i>Profile Settings
-                  </a>
-                </li>
-                <li>
-                  <a class="dropdown-item" href="#">
-                    <i class="bi bi-shield-lock me-2"></i>Security
-                  </a>
-                </li>
-                <li>
-                  <a class="dropdown-item" href="#">
-                    <i class="bi bi-bell me-2"></i>Notifications
                   </a>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
@@ -220,8 +214,12 @@ import { User, UserRole } from '../../../auth/models/auth.model';
       }
 
       .navbar-brand {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         color: var(--dark-gray) !important;
+      }
+
+      .brand-text {
+        letter-spacing: 0.06em;
       }
 
       .nav-link {
@@ -308,16 +306,16 @@ export class NavigationComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe((user) => {
         this.currentUser = user;
-        console.log('Navigation: Current user updated:', user);
-        console.log('Navigation: Is admin?', this.isAdmin);
-        console.log('Navigation: Is customer?', this.isCustomer);
       });
   }
 
@@ -332,6 +330,14 @@ export class NavigationComponent implements OnInit, OnDestroy {
 
   get isCustomer(): boolean {
     return this.currentUser?.role === UserRole.CUSTOMER;
+  }
+
+  get displayName(): string {
+    if (!this.currentUser) return "";
+    const name = [this.currentUser.firstName, this.currentUser.lastName]
+      .filter((v) => !!v && v.trim().length > 0)
+      .join(" ");
+    return name || this.currentUser.username;
   }
 
   toggleMobileMenu(): void {

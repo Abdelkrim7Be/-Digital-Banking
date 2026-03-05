@@ -1,20 +1,20 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
 import {
   FormBuilder,
   FormGroup,
   Validators,
   ReactiveFormsModule,
   AbstractControl,
-} from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
-import { UserRole } from '../../models/auth.model';
-import { RegisterRequest } from '../../../shared/models/banking-dtos.model';
-import { BankingValidators } from '../../../shared/validators/banking-validators';
+} from "@angular/forms";
+import { Router, RouterModule } from "@angular/router";
+import { AuthService } from "../../services/auth.service";
+import { UserRole } from "../../models/auth.model";
+import { RegisterRequest } from "../../../shared/models/banking-dtos.model";
+import { BankingValidators } from "../../../shared/validators/banking-validators";
 
 @Component({
-  selector: 'app-register',
+  selector: "app-register",
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
@@ -238,37 +238,7 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
                   />
                 </div>
 
-                <!-- Role Selection -->
-                <div class="mb-3">
-                  <label for="role" class="form-label">
-                    <i class="bi bi-person-badge me-2"></i>Account Type
-                  </label>
-                  <select
-                    id="role"
-                    class="form-select"
-                    formControlName="role"
-                    [class.is-invalid]="
-                      role?.invalid && (role?.dirty || role?.touched)
-                    "
-                  >
-                    <option value="CUSTOMER">Customer Account</option>
-                    <option value="ADMIN">Administrator Account</option>
-                  </select>
-                  <div class="form-text">
-                    <small
-                      >Choose Customer for personal banking or Administrator for
-                      system management</small
-                    >
-                  </div>
-                  <div
-                    class="invalid-feedback"
-                    *ngIf="role?.invalid && (role?.dirty || role?.touched)"
-                  >
-                    <div *ngIf="role?.errors?.['required']">
-                      Please select an account type
-                    </div>
-                  </div>
-                </div>
+                <!-- Account type: sign up is always for CUSTOMER accounts -->
 
                 <!-- Password Field -->
                 <div class="mb-3">
@@ -383,25 +353,25 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
                       <div
                         *ngIf="password?.errors?.['strongPassword']?.minLength"
                       >
-                        • {{ password?.errors?.['strongPassword']?.minLength }}
+                        • {{ password?.errors?.["strongPassword"]?.minLength }}
                       </div>
                       <div
                         *ngIf="password?.errors?.['strongPassword']?.lowercase"
                       >
-                        • {{ password?.errors?.['strongPassword']?.lowercase }}
+                        • {{ password?.errors?.["strongPassword"]?.lowercase }}
                       </div>
                       <div
                         *ngIf="password?.errors?.['strongPassword']?.uppercase"
                       >
-                        • {{ password?.errors?.['strongPassword']?.uppercase }}
+                        • {{ password?.errors?.["strongPassword"]?.uppercase }}
                       </div>
                       <div *ngIf="password?.errors?.['strongPassword']?.digit">
-                        • {{ password?.errors?.['strongPassword']?.digit }}
+                        • {{ password?.errors?.["strongPassword"]?.digit }}
                       </div>
                       <div
                         *ngIf="password?.errors?.['strongPassword']?.special"
                       >
-                        • {{ password?.errors?.['strongPassword']?.special }}
+                        • {{ password?.errors?.["strongPassword"]?.special }}
                       </div>
                     </div>
                     <div *ngIf="password?.errors?.['pattern']">
@@ -497,7 +467,7 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
                     class="spinner-border spinner-border-sm me-2"
                   ></span>
                   <i *ngIf="!loading" class="bi bi-person-plus me-2"></i>
-                  {{ loading ? 'Creating Account...' : 'Create Account' }}
+                  {{ loading ? "Creating Account..." : "Create Account" }}
                 </button>
 
                 <!-- Help Text for Button -->
@@ -585,14 +555,14 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
 export class RegisterComponent implements OnInit {
   registerForm!: FormGroup;
   loading = false;
-  errorMessage = '';
-  successMessage = '';
+  errorMessage = "";
+  successMessage = "";
   showPassword = false;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -606,26 +576,25 @@ export class RegisterComponent implements OnInit {
 
   initializeForm(): void {
     this.registerForm = this.fb.group({
-      firstName: ['', [Validators.required, Validators.minLength(2)]],
-      lastName: ['', [Validators.required, Validators.minLength(2)]],
-      username: ['', [Validators.required, BankingValidators.username()]],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, BankingValidators.strongPassword()]],
+      firstName: ["", [Validators.required, Validators.minLength(2)]],
+      lastName: ["", [Validators.required, Validators.minLength(2)]],
+      username: ["", [Validators.required, BankingValidators.username()]],
+      email: ["", [Validators.required, Validators.email]],
+      password: ["", [Validators.required, BankingValidators.strongPassword()]],
       confirmPassword: [
-        '',
-        [Validators.required, BankingValidators.passwordMatch('password')],
+        "",
+        [Validators.required, BankingValidators.passwordMatch("password")],
       ],
-      role: ['CUSTOMER', [Validators.required]], // Added role selection as per TODO.md
-      phone: [''], // Optional phone field as per TODO.md
+      phone: [""], // Optional phone field as per TODO.md
       acceptTerms: [false, [Validators.requiredTrue]],
     });
   }
 
   passwordMatchValidator(
-    control: AbstractControl
+    control: AbstractControl,
   ): { [key: string]: boolean } | null {
-    const password = control.get('password');
-    const confirmPassword = control.get('confirmPassword');
+    const password = control.get("password");
+    const confirmPassword = control.get("confirmPassword");
 
     if (!password || !confirmPassword) {
       return null;
@@ -646,14 +615,15 @@ export class RegisterComponent implements OnInit {
     }
 
     this.loading = true;
-    this.errorMessage = '';
+    this.errorMessage = "";
 
     // Updated to match TODO.md RegisterRequest DTO
     const registerData: RegisterRequest = {
       username: this.registerForm.value.username,
       email: this.registerForm.value.email,
       password: this.registerForm.value.password,
-      role: this.registerForm.value.role, // Role selection from form
+      // Sign up is only for CUSTOMER accounts
+      role: UserRole.CUSTOMER,
       name: `${this.registerForm.value.firstName} ${this.registerForm.value.lastName}`, // Combined name as per DTO
       phone: this.registerForm.value.phone || undefined, // Optional phone
     };
@@ -661,7 +631,7 @@ export class RegisterComponent implements OnInit {
     this.authService.register(registerData).subscribe({
       next: (response) => {
         this.loading = false;
-        this.successMessage = 'Account created successfully! Redirecting...';
+        this.successMessage = "Account created successfully! Redirecting...";
         setTimeout(() => {
           this.redirectUser();
         }, 1000);
@@ -669,7 +639,7 @@ export class RegisterComponent implements OnInit {
       error: (error) => {
         this.loading = false;
         this.errorMessage =
-          error.error?.message || 'Registration failed. Please try again.';
+          error.error?.message || "Registration failed. Please try again.";
       },
     });
   }
@@ -677,9 +647,9 @@ export class RegisterComponent implements OnInit {
   private redirectUser(): void {
     const user = this.authService.getCurrentUser();
     if (user?.role === UserRole.ADMIN) {
-      this.router.navigate(['/admin/dashboard']);
+      this.router.navigate(["/admin/dashboard"]);
     } else {
-      this.router.navigate(['/customer/dashboard']);
+      this.router.navigate(["/customer/dashboard"]);
     }
   }
 
@@ -689,31 +659,28 @@ export class RegisterComponent implements OnInit {
 
   // Getter methods for form controls
   get firstName() {
-    return this.registerForm.get('firstName');
+    return this.registerForm.get("firstName");
   }
   get lastName() {
-    return this.registerForm.get('lastName');
+    return this.registerForm.get("lastName");
   }
   get username() {
-    return this.registerForm.get('username');
+    return this.registerForm.get("username");
   }
   get email() {
-    return this.registerForm.get('email');
+    return this.registerForm.get("email");
   }
   get phone() {
-    return this.registerForm.get('phone');
-  }
-  get role() {
-    return this.registerForm.get('role');
+    return this.registerForm.get("phone");
   }
   get password() {
-    return this.registerForm.get('password');
+    return this.registerForm.get("password");
   }
   get confirmPassword() {
-    return this.registerForm.get('confirmPassword');
+    return this.registerForm.get("confirmPassword");
   }
   get acceptTerms() {
-    return this.registerForm.get('acceptTerms');
+    return this.registerForm.get("acceptTerms");
   }
 
   // Debug methods to help identify validation issues
@@ -740,18 +707,18 @@ export class RegisterComponent implements OnInit {
 
   // Password strength helper methods
   checkPasswordRequirement(requirement: string): boolean {
-    const password = this.password?.value || '';
+    const password = this.password?.value || "";
 
     switch (requirement) {
-      case 'length':
+      case "length":
         return password.length >= 8;
-      case 'lowercase':
+      case "lowercase":
         return /[a-z]/.test(password);
-      case 'uppercase':
+      case "uppercase":
         return /[A-Z]/.test(password);
-      case 'digit':
+      case "digit":
         return /\d/.test(password);
-      case 'special':
+      case "special":
         return /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
       default:
         return false;
@@ -760,6 +727,6 @@ export class RegisterComponent implements OnInit {
 
   getPasswordRequirementClass(requirement: string): string {
     const isValid = this.checkPasswordRequirement(requirement);
-    return isValid ? 'text-success' : 'text-muted';
+    return isValid ? "text-success" : "text-muted";
   }
 }

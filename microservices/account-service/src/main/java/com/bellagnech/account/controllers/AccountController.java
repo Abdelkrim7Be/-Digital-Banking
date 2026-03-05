@@ -23,6 +23,24 @@ public class AccountController {
 
     private final AccountService accountService;
 
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getAccountStats() {
+        log.info("Retrieving global account statistics");
+        return ResponseEntity.ok(accountService.getAccountStats());
+    }
+
+    @GetMapping("/selection/list")
+    public ResponseEntity<List<Map<String, Object>>> getAccountsForSelection() {
+        log.info("Retrieving accounts for selection dropdown");
+        return ResponseEntity.ok(accountService.getAccountsForSelection(false));
+    }
+
+    @GetMapping("/selection/list/active")
+    public ResponseEntity<List<Map<String, Object>>> getActiveAccountsForSelection() {
+        log.info("Retrieving active accounts for selection dropdown");
+        return ResponseEntity.ok(accountService.getAccountsForSelection(true));
+    }
+
     @GetMapping
     public ResponseEntity<List<BankAccountDTO>> getAllAccounts() {
         log.info("Retrieving all accounts");
@@ -113,7 +131,7 @@ public class AccountController {
         ));
     }
 
-    @PatchMapping("/{id}/balance")
+    @PutMapping("/{id}/balance")
     public ResponseEntity<Void> updateBalance(
             @PathVariable String id,
             @RequestBody Map<String, Double> balanceUpdate) throws BankAccountNotFoundException {
